@@ -57,7 +57,7 @@ bool OnboardLogParserAPM::_parse_message(const csv_row & row, OnboardData & ret)
 
     ret._msgname_orig = msgname; // original name can be used better to compare the message with the spec
     string_trim(ret._msgname_orig);
-    ret._msgname_readable = _make_readable_name(ret._msgname_readable); // .. but to the user we want to show pretty names
+    ret._msgname_readable = _make_readable_name(ret._msgname_orig); // .. but to the user we want to show pretty names
 
     map<string, lineformat>::const_iterator rit = _formats.find(msgname);
     if (rit == _formats.end()) return false;

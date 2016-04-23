@@ -12,10 +12,6 @@ GUI to parse, display, filter, export and store flight logs of MavLink, APM:Pilo
  - store and load to/from MySQL database
  - ...
 
-## Stay tuned, more information soon
-This is just the initial commit. Instructions for building follow in the next days.
-
-
 ## Prerequisites
  - Linux or Windows (Mac)?
  - libqwt6
