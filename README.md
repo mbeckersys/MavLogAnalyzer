@@ -41,3 +41,11 @@ newer Qt and newer Qwt should work
 Qt5 and Qwt <6.1 does not work
 
 Qt4 and Qwt >= 6.1 does not work 
+
+## Build Instructions
+ 0. Make sure prerequisites are fulfilled (see above)
+ 1. Clone this repository (git clone ...)
+ 2. Change into directory 'external' and follow README instructions
+ 3. Change into directory 'src' and start qtcreator with the project file 'MavLogAnalyzer.pro'
+ 4. Configure the project if requested by qtcreator
+ 5. Build and run

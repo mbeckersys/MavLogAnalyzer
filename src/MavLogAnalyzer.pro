@@ -1,7 +1,7 @@
 #-------------------------------------------------
 #
 # Project created by QtCreator 2014-04-18T14:16:19
-# (C) 2014-2015 by Martin Becker <becker@rcs.ei.tum.de>
+# (C) 2014-2016 by Martin Becker <becker@rcs.ei.tum.de>
 # 
 # Builds on Linux with Qt4.8.6 and Qwt package (6.0.x),
 # as well as on Windows with MingW 4.8.2-posix-dwarf-rt_v3 
@@ -17,7 +17,7 @@
 #    USER SETTINGS
 ###########################
 # adjust the path to the MavLink headers. You can get them from https://github.com/mavlink/mavlink
-MAVLINK_COMMON=$$_PRO_FILE_PWD_/../../mavlink/gen/common
+MAVLINK_COMMON=$$_PRO_FILE_PWD_/../external/mavlink/gen/common
 #message("MavLink headers expected at" $$MAVLINK_COMMON)
 
 # adjust the path to Qwt installation here, if necessary
@@ -35,7 +35,7 @@ win32 {
 
 ############# HANDS AWAY FROM HERE ###############
 QT       += core gui sql
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport # cuz Qt5+ has it in modules now
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport # because Qt5+ has it in modules now
 
 # save us trouble with installing the correct version of Qt and Qwt
 CONFIG+=release_and_debug

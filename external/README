@@ -1,0 +1,10 @@
+MavLogAnalyzer needs some external code to work properly:
+
+ 1. Clone the MAVLink sources from https://github.com/mavlink/mavlink
+ 2. Change into the new subdirectory "mavlink" and run mavgenerate.py
+    to generate the appropriate sources. You have to select an XML file
+    suitable for your MAV's autopilot from "message_definitions". As
+    language select "C", and as output directory make a subfolder "gen"
+    within the mavlink folder.
+ 3. Check the folder "gen" for contents (should not be empty)
+ 4. We are done here.
