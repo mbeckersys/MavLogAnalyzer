@@ -20,23 +20,31 @@ GUI to parse, display, filter, export and store flight logs of MavLink, APM:Pilo
  - SQL bindings for Qt, if you want to store/load data in/from a database
 
 ### Debian 7
-packages libqwt-dev qt4-dev-tools qt4-qmake qtcreator 
+With the distro packages, you have to use Qt4 and Qwt 6
+apt-get installs libqwt-dev qt4-dev-tools qt4-qmake qtcreator 
 
+### Debian 8
+Since Debian 8 does not yet include libqwt-6.1 (still 6.0), Qt4 has to be used like
+in Debian 7.
 
-### Other tested combinations of Qt, qwt and OS
-on Debian Wheezy with packages Qt 4.8.2 and Qwt 6.0.0 or newer
-on Windows 7 with Qt 5.3.1 and MingW 4.8.x and Qwt 6.1.0
-Ubuntu 10.04 might work: Qt 4.6.2 and Qwt 4.2 (very old!!)
-Ubuntu 14.04 will work (same as Wheezy): Qt 4.8.2 and Qwt 6.0.0
+Alternatively, install libqwt-6.1 manually from sources and use Debians's packaged Qt5.
 
-    on these newer systems: mind the version of Qt and Qwt. Often there are two versions, and qtcreator depends on the newest. However, you can install more than one version of Qt (e.g., in case Qwt is not compatible to Qt), and chose the compatible Qt version in the project settings
-    on Ubuntu 14, by default Qt5 is used. That does not work! You must select Qt4.8, otherwise both Qt4 and Qt5 get linked in, since libqwt-6.0 is used on Ubuntu 14 
+### Tested combinations of Qt, qwt and OS
+In general: 
+ * Qt5 and Qwt <6.1 does not work
+ * Qt4 and Qwt >= 6.1 does not work 
 
-newer Qt and newer Qwt should work
+Confirmed combinations:
+ * Debian Wheezy (7) with packages Qt 4.8.2 and Qwt 6.0.0 or newer
+ * Debian Jessie (8) with packages Qt 4.8.6 and Qwt 6.0.0 or newer
+ * Windows 7 with Qt 5.3.1 and MingW 4.8.x and Qwt 6.1.0
+ * Ubuntu 14.04 (same as Wheezy): Qt 4.8.2 and Qwt 6.0.0
 
-Qt5 and Qwt <6.1 does not work
+Other:
+ * Ubuntu 10.04 might work: Qt 4.6.2 and Qwt 4.2 (very old!!)
 
-Qt4 and Qwt >= 6.1 does not work 
+Mind the version of Qt and Qwt. Often there are two versions, and qtcreator depends on the newest. However, you can install more than one version of Qt (e.g., in case Qwt is not compatible to Qt), and chose the compatible Qt version in the project settings. In Ubuntu 14, by default Qt5 is used. That does not work! You must select Qt4.8, otherwise both Qt4 and Qt5 get linked in, since libqwt-6.0 is used on Ubuntu 14.
+
 
 ## Build Instructions
  0. Make sure prerequisites are fulfilled (see above)

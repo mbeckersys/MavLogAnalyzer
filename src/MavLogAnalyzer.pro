@@ -68,7 +68,7 @@ LIBS+= -L $$QWT_LIBPATH
 ###########################
 #    CPPFLAGS/LFLAGS
 ###########################
-QMAKE_CXXFLAGS += -Wall
+QMAKE_CXXFLAGS += -Wall -fpermissive
 QMAKE_CXXFLAGS_RELEASE += -O3
 QMAKE_CXXFLAGS_DEBUG += -O0
 #QMAKE_CXXFLAGS_DEBUG += -pg -p

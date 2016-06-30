@@ -715,10 +715,10 @@ void MainWindow::_addDataToPlot(TreeItem * const item) {
     if (g) {
         // try to add all data and all groups in here
         for (DataGroup::groupmap::const_iterator itg = g->groups.begin(); itg != g->groups.end(); ++itg) {
-            _addDataToPlot(dynamic_cast<const TreeItem*const>(itg->second));
+            _addDataToPlot(dynamic_cast<const TreeItem*const>(itg->second)); // FIXME: conversion from const TreeItem* to TreeItem* (fpermissive)
         }
         for (DataGroup::datamap::const_iterator itd = g->data.begin(); itd != g->data.end(); ++itd) {
-            _addDataToPlot(dynamic_cast<const TreeItem*const>(itd->second));
+            _addDataToPlot(dynamic_cast<const TreeItem*const>(itd->second)); // FIXME: conversion from const TreeItem* to TreeItem* (fpermissive)
         }
     }
     Data * const d = dynamic_cast<Data * const>(item);
