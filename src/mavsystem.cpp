@@ -47,6 +47,14 @@ using namespace std;
  *********************************************/
 
 #define RAD2DEG(x) x*(180./M_PI)
+#define DEG2RAD(x) (x*M_PI/180.)
+
+inline double angle360 (double x) {
+    if (isnan(x) || isinf(x)) return x;
+    while (x >= 360.) x-=360.;
+    while (x < 0.) x += 360.;
+    return x;
+}
 
 /*********************************************
  *      CLASS FUNCTIONS
@@ -944,6 +952,264 @@ void MavSystem::track_nav(float nav_roll_deg, float nav_pitch_deg, float nav_bea
 }
 
 /**
+ * @brief POST-PROCESSOR FOR GLIDING PERFORMANCE
+ * computes a/c glide ratio and XXX
+ */
+void MavSystem::_postprocess_glideperf() {
+    /*
+     *  we need the following four timeseries:
+     *  - vd: sink speed
+     *  - airspeed: ...
+     *  - pitch: only if pitch is approx. constant for some time we compute glide ratio,
+     *           otherwise it is likely that lift/sink comes from consuming kinetic or
+     *           potential energy
+     *  - roll: we use the roll angle to compensate/correct the glide ratio, because when
+     *          turning we loose sin(roll) of lift
+     */
+
+    const float SPEED_MIN = 5.f;
+    const float ACCX_MAX = 2.0; ///< max. 2m/s/s in airspeed change
+    const float PITCH_MAX = 20.f;
+    const float ROLL_MAX = 45.f;
+
+    // we need to find data for these:
+    const DataTimeseries<float> * data_roll = NULL, * data_pitch = NULL, * data_sink = NULL,
+                                * data_airspeed = NULL, *data_accx = NULL, *data_gspeed = NULL,
+                                * data_windN = NULL, *data_windE = NULL, *data_yaw = NULL;
+    bool have_sink = false, have_airspeed = false, have_roll = false, have_pitch = false,
+            have_accx = false, have_groundspeed = false, have_wind = false;
+
+    // search for roll angle
+    {
+        const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\b[rR]oll\\b", true);
+        if (data_try) {
+            data_roll = data_try;
+            have_roll = true;
+        }
+    }
+
+    // search for accx
+    {
+        const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\bAccX\\b", true);
+        if (data_try) {
+            data_accx = data_try;
+            have_accx = true;
+        }
+    }
+
+    // search for pitch angle
+    {
+        const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\b[pP]itch\\b", true);
+        if (data_try) {
+            data_pitch = data_try;
+            have_pitch = true;
+        }
+    }
+
+    // search for wind estimate
+    {
+        const DataTimeseries<float> * const data_try1 = get_data <const DataTimeseries<float> >("\\bVWE\\b", true);
+        const DataTimeseries<float> * const data_try2 = get_data <const DataTimeseries<float> >("\\bVWN\\b", true);
+        const DataTimeseries<float> * const data_try3 = get_data <const DataTimeseries<float> >("\\bYaw\\b", true);
+        if (data_try1 && data_try2 && data_try3) {
+            // no check. if there is a dataseries, we believe in it.
+            data_windE = data_try1;
+            data_windN = data_try2;
+            data_yaw = data_try3;
+            have_wind = true;
+        }
+    }
+
+    // search for airspeed ..
+    {
+        const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\bTrueSpeed\\b", true);
+        if (data_try) {
+            // check if this is actually has sensor data
+            if (data_try->get_max() - data_try->get_min() > SPEED_MIN) {
+                data_airspeed = data_try;
+                have_airspeed = true;
+            } else {
+                _log(MSG_WARN, stringbuilder() << " #" << id << ": postproc/glideperf: ignoring airspeed '" << data_try->get_fullname(data_try) << "' because of low variance");
+            }
+        }
+    }
+
+    // search for ground speed
+    {
+        const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("GPS/Spd", true);
+        if (data_try) {
+            // check if this is actually has sensor data
+            if (data_try->get_max() - data_try->get_min() > SPEED_MIN) {
+                data_gspeed = data_try;
+                have_groundspeed = true;
+            }
+        }
+    }
+    if (!have_groundspeed) {
+        // FIXME: otherwise, try to get speed in N,E,D/X,Y,Z directions and compute vector length
+    }
+
+    // search for sink speed.. try best data source first, then go to worse sources
+    {
+        const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\bVD\\b", true);
+        if (data_try) {
+            data_sink= data_try;
+            have_sink = true;
+        }
+    }
+    if (!have_sink) {
+        const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("GPS/VZ", true);
+        if (data_try) {
+            data_sink= data_try;
+            have_sink = true;
+        }
+    }
+
+    // messages for user
+    if (!have_roll) {
+        _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: roll angle not found in data");
+    } else {
+        _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using roll angle '" << data_roll->get_fullname(data_roll) << "'");
+    }
+    if (!have_accx) {
+        _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: acc x not found in data");
+    } else {
+        _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using acc x '" << data_accx->get_fullname(data_accx) << "'");
+    }
+    if (!have_pitch) {
+        _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: pitch angle not found in data");
+    } else {
+        _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using pitch angle '" << data_pitch->get_fullname(data_pitch) << "'");
+    }
+    if (!have_sink) {
+        _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: sink speed not found in data");
+    } else {
+        _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using sink speed '" << data_sink->get_fullname(data_sink) << "'");
+    }
+    if (!have_groundspeed) {
+        if (!have_airspeed) _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: groundspeed not found in data");
+    } else {
+        _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using groundspeed '" << data_gspeed->get_fullname(data_gspeed) << "'");
+    }
+    if (!have_airspeed) {
+        if (!have_groundspeed) {
+            _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: airspeed not found in data");
+        } else {
+            if (!have_wind) {
+                _log(MSG_WARN, stringbuilder() << " #" << id << ": postproc/glideperf: airspeed not found, but groundspeed without wind estimates. Results may be bogus.");
+            } else {
+                _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: airspeed is reconstructed from groundspeed and wind estimates.");
+            }
+        }
+    } else {
+        _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using airspeed '" << data_airspeed->get_fullname(data_airspeed) << "'");
+    }
+    if (have_wind) {
+        _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using wind '" << data_windE->get_fullname(data_windE) << "' and related");
+    }
+    if (!((have_airspeed || have_groundspeed) && have_pitch && have_roll && have_sink && have_accx)) return;
+
+
+    // finally...compute glide ratio
+    {
+        MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_glideratio, "glideperf/glide ratio", "ratio");        
+        data_glideratio->set_type(Data::DATA_DERIVED);
+        data_glideratio->clear();
+
+        // do wind first, if any
+        if (have_wind) {
+            MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_winddir, "glideperf/wind direction", "degree, coming from (aeronautic convention)");
+            MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_windspd, "glideperf/wind speed", "same units as VWE and VWN");
+            for (unsigned int k=0; k < data_windE->size(); ++k) {
+                double t; float wE, wN;
+                data_windE->get_data(k, t, wE); // wind blowing towards east direction
+                data_windN->get_data_at_time(t, wN); // wind blowing towards north direction
+
+#if 0
+                // DEBUG: wind blowing from south to north (180°)
+                wE = 0.;
+                wN = 2.;
+#endif
+                float winddir = 180./M_PI*atan2(-wE, -wN); // [0,0]=>0, [1,0]=>270°, [0,1]=>180°, [-1, 0]=>90°
+                winddir = angle360(winddir);
+                data_winddir->add_elem(winddir, t);
+                float windspd = sqrt(pow(wE,2.) + pow(wN,2.));
+                data_windspd->add_elem(windspd, t);
+
+                // compute moew cool things
+                float yaw; data_yaw->get_data_at_time(t, yaw);
+                yaw = DEG2RAD(angle360(yaw));
+
+                // aeronautic: if wind direction is opposite of yaw, then it's tail wind. So flip it.
+                float winddir_inv = DEG2RAD(angle360(winddir-180.));
+                float windrel = acos(cos(winddir_inv) * cos(yaw) + sin(winddir_inv) * sin(yaw));
+                float windhd = -cos(windrel)*windspd;
+                MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_windrel, "glideperf/relative wind angle", "degree between yaw angle and wind direction");
+                MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_windhd, "glideperf/head wind", "same units as VWE and VWN");
+                data_windrel->add_elem(RAD2DEG(windrel), t);
+                data_windhd->add_elem(windhd, t);
+
+                if (have_groundspeed) {
+                    // we estimate airspeed...even when there is a sensor. That is a good exercise.
+                    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_airspeedest, "glideperf/airspeed estimate", "same units as VWE and VWN");
+                    float airspeed = 0.; data_gspeed->get_data_at_time(t, airspeed);
+                    airspeed += windhd; // compensate with headwind
+                    data_airspeedest->add_elem(airspeed, t);
+                }
+            }
+        }
+
+
+        // where sink is > 0 ...
+        float maxratio = 0.;
+        float optspeed = 0.;
+        for (unsigned int k=0; k < data_sink->size(); ++k) {
+            double t;
+            float sink;            
+            if (data_sink->get_data(k, t, sink)) {
+                if (sink > 0.) {
+                    float airspeed = 0.f, pitch=0.f, roll=0.f, accx=0.f;
+                    data_accx->get_data_at_time(t, accx);
+                    if (have_airspeed) {
+                        data_airspeed->get_data_at_time(t, airspeed);
+                    } else {
+                        if (have_wind) {
+                            MAVSYSTEM_REQUIRE_DATA(DataTimeseries<float>, data_airspeedest, "glideperf/airspeed estimate");
+                            data_airspeedest->get_data_at_time(t, airspeed);
+                        } else {
+                            data_gspeed->get_data_at_time(t, airspeed);
+                        }
+                    }
+                    data_pitch->get_data_at_time(t, pitch);
+                    data_roll->get_data_at_time(t, roll); // FIXME: check units. Some Autopilots may have scaling
+
+                    // detect stationary flight: no kinectic energy being tranformed -> derivative of speed (AccX) close to zero
+                    // and around normal attitude and moving ...
+                    if (airspeed > SPEED_MIN && fabs(pitch) < PITCH_MAX && fabs(roll) < ROLL_MAX && fabs(accx) < ACCX_MAX) {
+                        float ratio = airspeed / sink;
+                        ratio = ratio * (1. - sin(M_PI*fabs(roll)/180.));
+                        data_glideratio->add_elem(ratio, t);
+                        if (ratio > maxratio) {
+                            maxratio = ratio;
+                            optspeed = airspeed;
+                        }
+                    }
+                }
+            }
+        }
+
+        MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_glideratio5, "glideperf/glide ratio 5sec avg", "ratio");
+        data_glideratio->moving_average(*data_glideratio5, 5.0);
+
+        // TODO: phenomenologic glide ratio from distance traveled vs altitude loss
+
+        if (maxratio > 0.) {
+            _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: Estimated max. A/C glide ratio of " << maxratio << " at speed " << optspeed);
+        }
+    }
+}
+
+/**
  * @brief POST-PROCESSOR FOR POWER STATISTICS
  * computes charge, power and cumulated versions of them
  */
@@ -1148,6 +1414,7 @@ void MavSystem::_postprocess_flightbook() {
 void MavSystem::postprocess() {   
     _postprocess_flightbook();
     _postprocess_powerstats();    
+    _postprocess_glideperf();
     // hook more postprocessing functions in here, if you write new ones.
 }
 

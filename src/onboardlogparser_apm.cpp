@@ -112,6 +112,10 @@ bool OnboardLogParserAPM::_parse_message(const csv_row & row, OnboardData & ret)
                 ret._float_data[colname] = atof(row[k].c_str());
                 break;
 
+            case 'Q':
+                ret._uint_data[colname] = ((u_int64_t) atoll(row[k].c_str()));
+                break;
+
             case 'M': // mode-string
             case 'Z': // string
             case 'N': // char[16]

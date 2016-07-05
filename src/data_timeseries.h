@@ -83,6 +83,40 @@ public:
         _min_t = other._min_t;
     }
 
+    /**
+     * @brief create a new averaged (moving window) dataseries
+     * based on the current one.
+     * @param windowlen_sec the window length in seconds
+     * TODO: optimize
+     */
+    void moving_average(DataTimeseries<T> & other, float windowlen_sec) const {
+        other.clear();
+
+        for (unsigned int k=0; k< this->_elems_time.size(); ++k) {
+            const double t = this->_elems_time[k], tmin = t-windowlen_sec, tmax=t+windowlen_sec;
+            unsigned n = 0;
+            double sum = 0.;
+            // left half
+            for (unsigned left = k; left > 0; left--) {
+                if (this->_elems_time[left] < tmin) break;
+                n++;
+                sum+=this->_elems_data[left];
+            }
+            // right half
+            for (unsigned right = k+1; right < this->_elems_data.size(); ++right) {
+                if (this->_elems_time[right] > tmax) break;
+                n++;
+                sum+=this->_elems_data[right];
+            }
+            // average window
+            if (n > 0) {
+                sum /= n;
+            }
+            other.add_elem(sum, t);
+        }
+        assert (other._elems_data.size() == this->_elems_data.size()); // otherwise something above is wrong
+    }
+
     // implements Data::clear()
     void clear() {
         _defaults();

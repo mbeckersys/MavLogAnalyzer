@@ -247,10 +247,21 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
     } else if (msg.get_message_origname().compare("CAM")==0) {
         // FIXME: more time references
     } else {
-       //cout << "generic onboard message: " <<  msg.get_message_origname() << endl;
-        uint64_t tnow = sys->get_rel_time();
-        tnow +=50; // 50usec to keep order
-        sys->update_rel_time(tnow,false);
+        //cout << "generic onboard message: " <<  msg.get_message_origname() << endl;
+        const OnboardData::uintdata d = msg.get_uintdata();
+        OnboardData::uintdata::const_iterator ir = d.find("TimeUS");
+        if (ir != d.end()) {
+            uint64_t tnow = ir->second;
+            if (sys->is_absolute_time(tnow)) {
+                sys->update_time_offset(sys->get_rel_time(), tnow);
+            } else {
+                sys->update_rel_time(tnow, false);
+            }
+        } else {
+            uint64_t tnow = sys->get_rel_time();
+            tnow +=50; // 50usec to keep order
+            sys->update_rel_time(tnow,false);
+        }
     }
 
     /****************************
@@ -258,6 +269,7 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
      ****************************/
     /* TODO
      * We could probably interpolate some relative times based on the periods of the following periodic messages:
+     *  (careful, periods are user-defined!)
      *  - ATT: can be 10Hz or 50Hz
      *  - CTUN: 10Hz
      *  - CURRENT: 10Hz

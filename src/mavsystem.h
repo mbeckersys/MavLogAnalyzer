@@ -40,6 +40,12 @@
 #include "debugtype.h"
 #include "logger.h"
 
+// this enables regular expressions for get_data(), but it also
+// instroduces a dependency on Qt.
+#ifdef WITH_DATAREGEX
+    #include <QRegExp>
+#endif
+
 #define MAVTYPE_INIT 0x0
 #define MAVAPTYPE_INIT 0x0
 
@@ -70,6 +76,7 @@ private:
      */
     void _postprocess_flightbook();
     void _postprocess_powerstats();
+    void _postprocess_glideperf();
 
     void _log(logmsgtype_e t, const std::string & str);
 
@@ -119,14 +126,28 @@ private:
     /**
      * @brief this internal function returns a ptr to a data item.
      * @return non-const ptr, where data can be modified
+     * fullpath can be a regex, but this is slower
      */
     template <typename DT>
-    DT *_get_data(const std::string &fullpath) const {
+    DT *_get_data(const std::string &fullpath, bool is_regex=false) const {
         // look in map if exists, else register.
-        data_accessmap::const_iterator it = _data_from_path.find(fullpath);
-        if (it != _data_from_path.end()) {
-            return dynamic_cast< DT *> (it->second);
+        if (!is_regex) {
+            data_accessmap::const_iterator it = _data_from_path.find(fullpath);
+            if (it != _data_from_path.end()) {
+                return dynamic_cast< DT *> (it->second);
+            }
         }
+#ifdef WITH_DATAREGEX
+        else {
+            QRegExp rx(QString::fromStdString(fullpath));
+            for (data_accessmap::const_iterator it = _data_from_path.begin(); it != _data_from_path.end(); ++it) {
+                bool match = rx.indexIn(QString::fromStdString(it->first)) >= 0;
+                if (match) {
+                    return dynamic_cast< DT *> (it->second);
+                }
+            }
+        }
+#endif
         return NULL;
     }
 
@@ -135,8 +156,8 @@ private:
      * the returned pointer is const.
      */
     template <typename DT>
-    const DT *get_data(const char *fullpath) const {
-        return get_data< DT >(std::string(fullpath));
+    const DT *get_data(const char *fullpath, bool is_regex=false) const {
+        return get_data< DT >(std::string(fullpath), is_regex);
     }
 
     /**
@@ -144,8 +165,8 @@ private:
      * (overloaded for convenience)
      */
     template <typename DT>
-    const DT *get_data(const std::string &fullpath) const {
-        return const_cast<const DT *>(_get_data < DT > (fullpath));
+    const DT *get_data(const std::string &fullpath, bool is_regex = false) const {
+        return const_cast<const DT *>(_get_data < DT > (fullpath, is_regex));
     }
 
     /**
