@@ -952,10 +952,66 @@ void MavSystem::track_nav(float nav_roll_deg, float nav_pitch_deg, float nav_bea
 }
 
 /**
- * @brief POST-PROCESSOR FOR GLIDING PERFORMANCE
+ * @brief POST-PROCESSOR FOR GLIDING PERFORMANCE, position-based
  * computes a/c glide ratio and XXX
  */
-void MavSystem::_postprocess_glideperf() {
+void MavSystem::_postprocess_glideperf_pos() {
+    /*
+     * Need: X, Y, Z position
+     */
+    const DataTimeseries<float> * data_x = NULL, * data_y = NULL, * data_z = NULL;
+    bool z_inverse = false;
+
+    // search for x
+    {
+        const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\bPN\\b", true);
+        if (data_try) {
+            data_x = data_try;
+        }
+    }
+
+    // search for y
+    {
+        const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\bPE\\b", true);
+        if (data_try) {
+            data_y = data_try;
+        }
+    }
+
+    // search for z
+    {
+        const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\bPD\\b", true);
+        if (data_try) {
+            data_z = data_try;
+            z_inverse = true;
+        }
+    }
+
+    if (data_x && data_y && data_z) {
+        MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_dist, "glideperf/cum. horz. dist.", "m");
+        data_dist->set_type(Data::DATA_DERIVED);
+        float x_pre, y_pre, z_pre, hdist_pre;
+        for (unsigned k=0; k<data_x->size(); ++k) {
+            double t; float x, y, z;
+            data_x->get_data(k, t, x);
+            data_y->get_data_at_time(t, y);
+            data_z->get_data_at_time(t, z);
+            if (k>0) {
+                const float hdist = sqrt(pow(x-x_pre,2) + pow(y-y_pre,2)) + hdist_pre;
+                data_dist->add_elem(hdist, t);
+                hdist_pre = hdist;
+            }
+            x_pre = x; y_pre = y; z_pre = z;
+        }
+    }
+}
+
+
+/**
+ * @brief POST-PROCESSOR FOR GLIDING PERFORMANCE, velocity-based
+ * computes a/c glide ratio and XXX
+ */
+void MavSystem::_postprocess_glideperf_vel() {
     /*
      *  we need the following four timeseries:
      *  - vd: sink speed
@@ -976,15 +1032,13 @@ void MavSystem::_postprocess_glideperf() {
     const DataTimeseries<float> * data_roll = NULL, * data_pitch = NULL, * data_sink = NULL,
                                 * data_airspeed = NULL, *data_accx = NULL, *data_gspeed = NULL,
                                 * data_windN = NULL, *data_windE = NULL, *data_yaw = NULL;
-    bool have_sink = false, have_airspeed = false, have_roll = false, have_pitch = false,
-            have_accx = false, have_groundspeed = false, have_wind = false;
+    bool have_wind = false;
 
     // search for roll angle
     {
         const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\b[rR]oll\\b", true);
         if (data_try) {
             data_roll = data_try;
-            have_roll = true;
         }
     }
 
@@ -993,7 +1047,6 @@ void MavSystem::_postprocess_glideperf() {
         const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\bAccX\\b", true);
         if (data_try) {
             data_accx = data_try;
-            have_accx = true;
         }
     }
 
@@ -1002,7 +1055,6 @@ void MavSystem::_postprocess_glideperf() {
         const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\b[pP]itch\\b", true);
         if (data_try) {
             data_pitch = data_try;
-            have_pitch = true;
         }
     }
 
@@ -1027,7 +1079,6 @@ void MavSystem::_postprocess_glideperf() {
             // check if this is actually has sensor data
             if (data_try->get_max() - data_try->get_min() > SPEED_MIN) {
                 data_airspeed = data_try;
-                have_airspeed = true;
             } else {
                 _log(MSG_WARN, stringbuilder() << " #" << id << ": postproc/glideperf: ignoring airspeed '" << data_try->get_fullname(data_try) << "' because of low variance");
             }
@@ -1036,63 +1087,78 @@ void MavSystem::_postprocess_glideperf() {
 
     // search for ground speed
     {
+        // FIXME: otherwise, try to get speed in N,E,D/X,Y,Z directions and compute vector length
+        const DataTimeseries<float> * const data_try1 = get_data <const DataTimeseries<float> >("NKF1/VE", true);
+        const DataTimeseries<float> * const data_try2 = get_data <const DataTimeseries<float> >("NKF1/VN", true);
+        if (data_try1 && data_try2) {
+            // if present, we believe the data
+            // fuse to scalar
+            MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_newspeed, "glideperf/groundspeed", "VE and VN");
+            for (unsigned int k=0; k < data_try1->size(); ++k) {
+                double t; float vn, ve;
+                data_try1->get_data(k, t, ve);
+                data_try2->get_data_at_time(t, vn);
+                float total = sqrt(pow(ve,2) + pow(vn,2));
+                data_newspeed->add_elem(total, t);
+            }
+            data_newspeed->set_type(Data::DATA_DERIVED);
+            data_gspeed = data_newspeed;
+        }
+    }
+
+    if (!data_gspeed) {
         const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("GPS/Spd", true);
         if (data_try) {
             // check if this is actually has sensor data
             if (data_try->get_max() - data_try->get_min() > SPEED_MIN) {
                 data_gspeed = data_try;
-                have_groundspeed = true;
             }
         }
     }
-    if (!have_groundspeed) {
-        // FIXME: otherwise, try to get speed in N,E,D/X,Y,Z directions and compute vector length
-    }
+
 
     // search for sink speed.. try best data source first, then go to worse sources
     {
         const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\bVD\\b", true);
         if (data_try) {
             data_sink= data_try;
-            have_sink = true;
         }
     }
-    if (!have_sink) {
+    if (!data_sink) {
         const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("GPS/VZ", true);
         if (data_try) {
             data_sink= data_try;
-            have_sink = true;
         }
     }
 
     // messages for user
-    if (!have_roll) {
+    if (!data_roll) {
         _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: roll angle not found in data");
     } else {
         _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using roll angle '" << data_roll->get_fullname(data_roll) << "'");
     }
-    if (!have_accx) {
+    if (!data_accx) {
         _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: acc x not found in data");
     } else {
         _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using acc x '" << data_accx->get_fullname(data_accx) << "'");
     }
-    if (!have_pitch) {
+    if (!data_pitch) {
         _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: pitch angle not found in data");
     } else {
         _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using pitch angle '" << data_pitch->get_fullname(data_pitch) << "'");
     }
-    if (!have_sink) {
+    if (!data_sink) {
         _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: sink speed not found in data");
     } else {
         _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using sink speed '" << data_sink->get_fullname(data_sink) << "'");
     }
-    if (!have_groundspeed) {
-        if (!have_airspeed) _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: groundspeed not found in data");
+    if (!data_gspeed) {
+        if (!data_airspeed) _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: groundspeed not found in data");
     } else {
         _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using groundspeed '" << data_gspeed->get_fullname(data_gspeed) << "'");
     }
-    if (!have_airspeed) {
-        if (!have_groundspeed) {
+    if (!data_airspeed) {
+        if (!data_gspeed) {
             _log(MSG_ERR, stringbuilder() << " #" << id << ": postproc/glideperf: airspeed not found in data");
         } else {
             if (!have_wind) {
@@ -1107,7 +1173,7 @@ void MavSystem::_postprocess_glideperf() {
     if (have_wind) {
         _log(MSG_INFO, stringbuilder() << " #" << id << ": postproc/glideperf: using wind '" << data_windE->get_fullname(data_windE) << "' and related");
     }
-    if (!((have_airspeed || have_groundspeed) && have_pitch && have_roll && have_sink && have_accx)) return;
+    if (!((data_airspeed || data_gspeed) && data_pitch && data_roll && data_sink && data_accx)) return;
 
 
     // finally...compute glide ratio
@@ -1120,6 +1186,8 @@ void MavSystem::_postprocess_glideperf() {
         if (have_wind) {
             MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_winddir, "glideperf/wind direction", "degree, coming from (aeronautic convention)");
             MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_windspd, "glideperf/wind speed", "same units as VWE and VWN");
+            data_winddir->set_type(Data::DATA_DERIVED);
+            data_windspd->set_type(Data::DATA_DERIVED);
             for (unsigned int k=0; k < data_windE->size(); ++k) {
                 double t; float wE, wN;
                 data_windE->get_data(k, t, wE); // wind blowing towards east direction
@@ -1146,12 +1214,15 @@ void MavSystem::_postprocess_glideperf() {
                 float windhd = -cos(windrel)*windspd;
                 MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_windrel, "glideperf/relative wind angle", "degree between yaw angle and wind direction");
                 MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_windhd, "glideperf/head wind", "same units as VWE and VWN");
+                data_windrel->set_type(Data::DATA_DERIVED);
+                data_windhd->set_type(Data::DATA_DERIVED);
                 data_windrel->add_elem(RAD2DEG(windrel), t);
                 data_windhd->add_elem(windhd, t);
 
-                if (have_groundspeed) {
+                if (data_gspeed) {
                     // we estimate airspeed...even when there is a sensor. That is a good exercise.
                     MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_airspeedest, "glideperf/airspeed estimate", "same units as VWE and VWN");
+                    data_airspeedest->set_type(Data::DATA_DERIVED);
                     float airspeed = 0.; data_gspeed->get_data_at_time(t, airspeed);
                     airspeed += windhd; // compensate with headwind
                     data_airspeedest->add_elem(airspeed, t);
@@ -1170,7 +1241,7 @@ void MavSystem::_postprocess_glideperf() {
                 if (sink > 0.) {
                     float airspeed = 0.f, pitch=0.f, roll=0.f, accx=0.f;
                     data_accx->get_data_at_time(t, accx);
-                    if (have_airspeed) {
+                    if (data_airspeed) {
                         data_airspeed->get_data_at_time(t, airspeed);
                     } else {
                         if (have_wind) {
@@ -1198,7 +1269,7 @@ void MavSystem::_postprocess_glideperf() {
             }
         }
 
-        MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_glideratio5, "glideperf/glide ratio 5sec avg", "ratio");
+        MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_glideratio5, "glideperf/glide ratio 5sec avg", "ratio");        
         data_glideratio->moving_average(*data_glideratio5, 5.0);
 
         // TODO: phenomenologic glide ratio from distance traveled vs altitude loss
@@ -1414,7 +1485,8 @@ void MavSystem::_postprocess_flightbook() {
 void MavSystem::postprocess() {   
     _postprocess_flightbook();
     _postprocess_powerstats();    
-    _postprocess_glideperf();
+    _postprocess_glideperf_pos();
+    _postprocess_glideperf_vel();
     // hook more postprocessing functions in here, if you write new ones.
 }
 

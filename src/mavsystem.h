@@ -76,7 +76,8 @@ private:
      */
     void _postprocess_flightbook();
     void _postprocess_powerstats();
-    void _postprocess_glideperf();
+    void _postprocess_glideperf_vel();
+    void _postprocess_glideperf_pos();
 
     void _log(logmsgtype_e t, const std::string & str);
 
