@@ -1,6 +1,8 @@
 # MavLogAnalyzer
 GUI to parse, display, filter, export and store flight logs of MavLink, APM:Pilot, Pixhawk etc.
 
+![Alt text](/screenshots/datacursor_log.jpg?raw=true "Screenshot")
+
 ## Features
  - Parse MavLink Logfiles as they are created by, e.g., QGroundControl
  - Parse onboard logs of APM:Copter and PX4
