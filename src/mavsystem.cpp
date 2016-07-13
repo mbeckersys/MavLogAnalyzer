@@ -1196,7 +1196,7 @@ void MavSystem::_postprocess_glideperf_vel() {
 #if 0
                 // DEBUG: wind blowing from south to north (180°)
                 wE = 0.;
-                wN = 2.;
+                wN = 4.;
 #endif
                 float winddir = 180./M_PI*atan2(-wE, -wN); // [0,0]=>0, [1,0]=>270°, [0,1]=>180°, [-1, 0]=>90°
                 winddir = angle360(winddir);
@@ -1258,7 +1258,7 @@ void MavSystem::_postprocess_glideperf_vel() {
                     // and around normal attitude and moving ...
                     if (airspeed > SPEED_MIN && fabs(pitch) < PITCH_MAX && fabs(roll) < ROLL_MAX && fabs(accx) < ACCX_MAX) {
                         float ratio = airspeed / sink;
-                        ratio = ratio * (1. - sin(M_PI*fabs(roll)/180.));
+                        ratio = ratio / cos(M_PI*fabs(roll)/180.);
                         data_glideratio->add_elem(ratio, t);
                         if (ratio > maxratio) {
                             maxratio = ratio;
