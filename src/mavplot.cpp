@@ -70,7 +70,6 @@ unsigned int MavPlot::exportCsv(const std::string&filename, bool /* onlyview -> 
     unsigned int n_series = 0;
     //std::ofstream fout(filename.c_str());
 
-    // remove all series
     for (dataplotmap::iterator it_series = _series.begin(); it_series != _series.end(); ++it_series) {
         const Data*const d = it_series->first;
         if (d) {
@@ -78,8 +77,6 @@ unsigned int MavPlot::exportCsv(const std::string&filename, bool /* onlyview -> 
             n_series++;
         }
     }
-
-    // remove all annotations
     for (annotationsmap::iterator it_annot = _annotations.begin(); it_annot != _annotations.end(); ++it_annot) {
         const Data*const d = it_annot->first;
         if (d) {

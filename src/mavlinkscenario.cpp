@@ -242,14 +242,11 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
             _onboard_time_time.last_time = gps_time_usec;
             _onboard_time_time.have_last = true;
         }
-    } else if (msg.get_message_origname().compare("IMU")==0) {
-        // FIXME: more time references in APM, not in PX4
-    } else if (msg.get_message_origname().compare("CAM")==0) {
-        // FIXME: more time references
     } else {
         //cout << "generic onboard message: " <<  msg.get_message_origname() << endl;
         const OnboardData::uintdata d = msg.get_uintdata();
         OnboardData::uintdata::const_iterator ir = d.find("TimeUS");
+        if (ir == d.end()) ir = d.find("t");
         if (ir != d.end()) {
             uint64_t tnow = ir->second;
             if (sys->is_absolute_time(tnow)) {

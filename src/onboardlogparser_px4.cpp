@@ -147,14 +147,14 @@ void OnboardLogParserPX4::_parse_message(const msgformat & fmt, OnboardData& ret
         }
             break;
 
-        case 'Q': // long - OK
+        case 'Q': // Uint64
         {
             uint64_t v; _filebuf_get(v);
             ret._uint_data[fieldlabel] = v;
         }
             break;
 
-        case 'q': // long - OK
+        case 'q': //Int64
         {
             int64_t v; _filebuf_get(v);
             ret._int_data[fieldlabel] = v;
