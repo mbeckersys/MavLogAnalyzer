@@ -32,6 +32,7 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
+#include <iomanip>
 #include "data.h"
 
 template <typename T>
@@ -127,6 +128,7 @@ public:
         if (!fout.is_open()) return false;
 
         fout << "#time, " << _name << "[" << _units << "]" << std::endl;
+        fout << std::setprecision(9);
         for (unsigned int k=0; k<_n; k++) {
             T d = _elems_data[k];
             double t = _elems_time[k];

@@ -28,6 +28,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <iomanip>
 #include "data.h"
 
 template <typename T>
@@ -100,6 +101,7 @@ public:
         if (!fout.is_open()) return false;
 
         fout << "# untimed single data point \"" << _name << "\" [" << _units << "]" << std::endl;
+        fout << std::setprecision(9);
         fout << _elem << std::endl;
         fout.close();
         return true;
