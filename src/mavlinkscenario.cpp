@@ -278,22 +278,27 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
     //cout << "onboard rel. time=" << nowtime_us << "us"<< endl;
     // feed data directly into system class
     for (OnboardData::booldata::const_iterator dit = msg.get_booldata().begin(); dit != msg.get_booldata().end(); ++dit) {
+        if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
         sys->track_generic_timeseries<bool>(fullname, dit->second);
     }
     for (OnboardData::intdata::const_iterator dit = msg.get_intdata().begin(); dit != msg.get_intdata().end(); ++dit) {
+        if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
         sys->track_generic_timeseries<int>(fullname, dit->second);
     }
     for (OnboardData::uintdata::const_iterator dit = msg.get_uintdata().begin(); dit != msg.get_uintdata().end(); ++dit) {
+        if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
         sys->track_generic_timeseries<unsigned int>(fullname, dit->second);
     }
     for (OnboardData::floatdata::const_iterator dit = msg.get_floatdata().begin(); dit != msg.get_floatdata().end(); ++dit) {
+        if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
         sys->track_generic_timeseries<float>(fullname, dit->second);
     }
     for (OnboardData::stringdata::const_iterator dit = msg.get_stringdata().begin(); dit != msg.get_stringdata().end(); ++dit) {
+        if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
         sys->track_generic_event<std::string>(fullname, dit->second);
     }
