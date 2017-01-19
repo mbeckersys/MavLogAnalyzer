@@ -241,7 +241,7 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
             _onboard_time_time.last_nowtime_usec = reltime_us;
             _onboard_time_time.last_time = gps_time_usec;
             _onboard_time_time.have_last = true;
-        }
+        }      
     } else {
         //cout << "generic onboard message: " <<  msg.get_message_origname() << endl;
         const OnboardData::uintdata d = msg.get_uintdata();
@@ -259,6 +259,11 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
             tnow +=50; // 50usec to keep order
             sys->update_rel_time(tnow,false);
         }
+
+        /*
+         * Unlike APM onboard messages, PX4 messages don't carry a timestamp. So we are left guessing here.
+         */
+
     }
 
     /****************************

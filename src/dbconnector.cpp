@@ -310,26 +310,27 @@ int DBConnector::_saveData2DB(const Data &dat, const int systemID, std::map<std:
     std::string type;
     std::vector <double> data;
     std::vector <double> time;
+    int ret = 0;
 
     //determine type and convert Data to double vector
     success = _convertDataToDoubleVector(&dat, data, time, type, events, newEvents,maxEventID);
     if(success < 0) {
         std::cerr << "Error occured during converting of Data: " << success << std::endl;
-        return -1;
+        ret = -1;
     }
     //Insert DataContainer aka DataGroup to DB;
     dataGroupID = _insertDataGroupToDB(dat,systemID, type);
     if(dataGroupID < 0) {
         std::cerr << "Error occured during saving of DataGroup: " << dataGroupID << std::endl;
-        return -2;
+        ret = -2;
     }
     // insert the actual data
     success = _insertDataToDB(data, time, dataGroupID);
     if(success < 0) {
         std::cerr << "Error occured during saving of Data: " << success << std::endl;
-        return -3;
+        ret = -3;
     }
-    return 0;
+    return ret;
 }
 
 /**
@@ -817,11 +818,8 @@ int DBConnector::_insertDataToDB(const std::vector <double> &data, const std::ve
     const unsigned int CHUNKSIZE=5000;
     bool ret;
     for (/*above*/; itd != data.end(); /* IN LOOP */) {
-        if(chunk != 0) {
-            ssqry << ",";
-        } else {            
-            ssqry.str(std::string()); // CLEAR
-            ssqry << "INSERT INTO data (DATAGROUP_ID,TIME,VALUE) VALUES ";
+        if(chunk == 0) {
+            ssqry.str(std::string()); // CLEAR            
         }
 
         // differencing: only convert value to string, if value changed
@@ -832,20 +830,35 @@ int DBConnector::_insertDataToDB(const std::vector <double> &data, const std::ve
             ssvalue << val;
             lastVal = val;
         }
-        ssqry << "(" << strdataGroupID << "," << *itt << "," << ssvalue.str() << ")";
+        std::string ssval = ssvalue.str();
+
+        // SKIP NANs!!!
+        if (ssval.find("nan") != std::string::npos) {
+            // skip
+        } else {
+            ssqry << "(" << strdataGroupID << "," << *itt << "," << ssval << "),";
+        }
 
         // LOOP INCREMENT
         ++itd; ++itt;
 
         // we split the INSERT into smaller queries to aid performance and to not overload the DB
-        if (++chunk == CHUNKSIZE || itd == data.end()) {
-            ssqry << ";";
-            qry.prepare( QString::fromStdString(ssqry.str()) ); // FIXME: use bindVal()
-            ret = qry.exec();
-            if( !ret ) {
-               std::cerr << "Error occured during execution of Query: "<<qry.lastError().text().toStdString() << std::endl;
-               _db.rollback();
-               return -3;
+        if (++chunk == CHUNKSIZE || itd == data.end()) {            
+            QString body = QString::fromStdString(ssqry.str());
+            // only non-empty queries are passed
+            if (body.size() > 1) {
+                body.resize (body.size()-1); // remove trailing ","
+                QString qf = "INSERT INTO data (DATAGROUP_ID,TIME,VALUE) VALUES " + body + ";";
+                qry.prepare( qf ); // FIXME: use bindVal()
+                ret = qry.exec();
+                if( !ret ) {
+                   std::cerr << "Error occured during execution of Query: "<<qry.lastError().text().toStdString() << std::endl;
+                   std::cerr << "Full query: " << qf.toStdString() << endl;
+                   _db.rollback();
+                   return -3;
+                }
+            } else {
+                    std::cerr << "Skipped empty (possibly nan-filled) dataGroup chunk for group " << strdataGroupID  << endl;
             }
             chunk = 0;
         }
