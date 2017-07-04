@@ -34,7 +34,7 @@
     DTYPE *const VARNAME = _get_and_possibly_create_data< DTYPE > (std::string( STR_FULLPATH ), std::string (STR_UNITS)); \
     if (!VARNAME) { /* because there could be something with same name but different type */ \
         _log(MSG_ERR, stringbuilder() << "(#" << id << ") writing to data " << STR_FULLPATH << " at " << __FILE__ << ":" << __LINE__  << ". Is there a type mismatch?"); \
-        return; \
+        return NULL; \
     }
 // FIXME: string could be made static...does it help?
 

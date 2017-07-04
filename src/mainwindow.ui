@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MavLogAnalyzer (C)2013-2016 by Martin Becker</string>
+   <string>MavLogAnalyzer (C)2013-2017 by Martin Becker</string>
   </property>
   <property name="windowIcon">
    <iconset resource="app.qrc">
@@ -20,7 +20,16 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
-    <property name="margin">
+    <property name="leftMargin">
+     <number>5</number>
+    </property>
+    <property name="topMargin">
+     <number>5</number>
+    </property>
+    <property name="rightMargin">
+     <number>5</number>
+    </property>
+    <property name="bottomMargin">
      <number>5</number>
     </property>
     <item>

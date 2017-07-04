@@ -1,6 +1,6 @@
 /**
  * @file dialogselectscenario.h
- * @brief TODO: describe this file
+ * @brief A dialog that forces the user to select exactly one scenario out of many.
  * @author Martin Becker <becker@rcs.ei.tum.de>
  * @date 11/17/2015
  

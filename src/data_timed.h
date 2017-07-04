@@ -1,6 +1,6 @@
 /**
- * @file data_untimed.h
- * @brief superclass for all untimed kind of data
+ * @file data_timed.h
+ * @brief superclass for all timed kind of data
  * @author Martin Becker <becker@rcs.ei.tum.de>
  * @date 7/4/2017
 
@@ -20,22 +20,38 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
  */
-#ifndef DATA_UNTIMED_H
-#define DATA_UNTIMED_H
+#ifndef DATA_TIMED_H
+#define DATA_TIMED_H
 
 #include "data.h"
 
 /**
- * @brief additional interface for all untimed kind of data
+ * @brief additional interface for all timed kind of data
  */
-class DataUntimed : public Data {
+class DataTimed : public Data {
 public:
     // CTOR
-    DataUntimed(std::string name) : Data(name) { }
+    DataTimed(std::string name) : Data(name), _bad_timestamps (false) { }
 
     // copy CTOR
-    DataUntimed(const Data & other) : Data(other) { }
+    DataTimed(const DataTimed & other) : Data(other) {
+        _bad_timestamps = other._bad_timestamps;
+    }
 
+    /**
+     * @brief some timeseries do not have reliable time annotations
+     * @return
+     */
+    bool has_bad_timestamps(void) const { return _bad_timestamps; }
+    void set_has_bad_timestamps (void) { _bad_timestamps = true; }
+
+    /**
+     * @brief distribute data equally over time span
+     */
+    virtual void make_periodic() = 0;
+
+protected:
+    bool _bad_timestamps;
 };
 
-#endif // DATA_UNTIMED_H
+#endif // DATA_TIMED_H

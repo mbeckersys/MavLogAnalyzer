@@ -36,16 +36,18 @@
 #endif
 #include <math.h>
 #include <iomanip>
-#include "data.h"
+#include "data_timed.h"
 #include "time_fun.h"
 
 
-
-/***************************
- * timeseries type
- ***************************/
-template <typename T> // FIXME: we need another level of indirection, to treat timeseries uniformly. The demuxing/dynamic casting is nerve wracking
-class DataTimeseries : public Data {
+/**
+ * @brief a timeseries is a data item whereas each point has a time annotation.
+ * This is a template class specific to the data points.
+ *
+ * TODO: move common stuff to DataTimed
+ */
+template <typename T>
+class DataTimeseries : public DataTimed {
 private:
     typedef std::pair<double,T> datapair; ///< one item in the timeline is this
 
@@ -54,7 +56,7 @@ public:
      * @brief Statistics
      * @param keepitems if true then individual items are stored.
      */
-    DataTimeseries(std::string name, bool keepitems=true) : Data(name), _keepitems(keepitems) {
+    DataTimeseries(std::string name, bool keepitems=true) : DataTimed(name), _keepitems(keepitems) {
         _defaults();
     }
 
@@ -69,7 +71,7 @@ public:
     }
 
     // copy CTOR (DONE)
-    DataTimeseries(const DataTimeseries & other) : Data(other) {
+    DataTimeseries(const DataTimeseries & other) : DataTimed(other) {
         _keepitems = other._keepitems;
         _min_valid = other._min_valid;
         _max_valid = other._max_valid;
@@ -416,6 +418,16 @@ public:
         return _n;
     }
 
+    /**
+     * @return rate of data (in Hz)
+     */
+    float get_rate() const {
+        const double timespan = get_max_time() - get_min_time();
+        float freq = 0.0;
+        if (timespan > 0.0) freq = size() / timespan;
+        return freq;
+    }
+
     std::string describe_myself() const {
         std::stringstream ss;
         ss<< "Data: TIMESERIES" << std::endl <<
@@ -423,13 +435,32 @@ public:
              "name: " << Data::get_fullname(dynamic_cast<const Data*const>(this)) << std::endl <<
              "units:" << _units << std::endl <<             
              "#data points: " << _n << std::endl <<
+             "data rate: " << get_rate() << "Hz" << std::endl <<
              "time: "<< get_min_time() << " .. " << get_max_time() << std::endl <<
              "min: " << get_min() << " " << _units << std::endl <<
              "max: " << get_max() << " " << _units << std::endl <<
              "avg: " << get_average() << " " << _units  << std::endl <<
-             "stddev: " << get_stddev() << " " << _units  << std::endl;
+             "stddev: " << get_stddev() << " " << _units  << std::endl <<
+             "time bad: " << (has_bad_timestamps() ? "true" : "false") << std::endl;
 
         return ss.str();
+    }
+
+    /**
+     * @brief distributes all samples over the time span equidistantly.
+     */
+    void make_periodic(void) {
+        double rate = get_rate();
+        if (rate <= 0.0) return;
+
+        double dt = 1.0 / get_rate();
+        double t0 = get_min_time();
+        for (unsigned int k=0; k<_elems_time.size(); ++k) {
+            _elems_time[k] = t0 + dt*k;
+        }
+
+        _bad_timestamps = false;
+        _class = DATA_DERIVED;
     }
 
     // implements Data::export_csv()
@@ -549,7 +580,7 @@ private:
     double          _max_t;
     double          _min_t;
     bool            _max_valid;
-    bool            _min_valid;
+    bool            _min_valid;    
 };
 
 #endif // DATA_TIMESERIES_H

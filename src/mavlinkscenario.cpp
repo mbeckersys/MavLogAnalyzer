@@ -104,6 +104,7 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
      */
 
     // to preserve order when no time is given.
+    bool untimed_message = false;
     uint64_t nowtime_us = sys->get_rel_time() + 1;
     sys->update_rel_time(nowtime_us); // if someone knows better below, it can update just again    
 
@@ -214,9 +215,9 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
                 _onboard_gps_time.last_gps_time = gps_time_usec;
                 _onboard_gps_time.have_last = true;
             } else {
-                // FIXME: no guess what the time is...increment by one to keep ordering of messages
+                // FIXME: GPS message w/o timestamp. increment a bit to keep ordering of messages
                 uint64_t tnow = sys->get_rel_time();
-                tnow +=500; // 500usec
+                tnow +=50; // 50usec
                 sys->update_rel_time(tnow,false);
             }
         }
@@ -255,9 +256,7 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
                 sys->update_rel_time(tnow, false);
             }
         } else {
-            uint64_t tnow = sys->get_rel_time();
-            tnow +=50; // 50usec to keep order
-            sys->update_rel_time(tnow,false);
+            untimed_message = true;
         }
 
         /*
@@ -269,7 +268,7 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
     /****************************
      *  RELATIVE TIMESTAMPS
      ****************************/
-    /* TODO
+    /* TODO: be clever about missing timestamps, use message rates
      * We could probably interpolate some relative times based on the periods of the following periodic messages:
      *  (careful, periods are user-defined!)
      *  - ATT: can be 10Hz or 50Hz
@@ -280,32 +279,36 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
      * The rest seems aperiodic.
      */
 
-    //cout << "onboard rel. time=" << nowtime_us << "us"<< endl;
-    // feed data directly into system class
+    // timeseries
     for (OnboardData::booldata::const_iterator dit = msg.get_booldata().begin(); dit != msg.get_booldata().end(); ++dit) {
         if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
-        sys->track_generic_timeseries<bool>(fullname, dit->second);
+        DataTimed *series = sys->track_generic_timeseries<bool>(fullname, dit->second);
+        if (untimed_message) { series->set_has_bad_timestamps(); }
     }
     for (OnboardData::intdata::const_iterator dit = msg.get_intdata().begin(); dit != msg.get_intdata().end(); ++dit) {
         if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
-        sys->track_generic_timeseries<int>(fullname, dit->second);
+        DataTimed *series = sys->track_generic_timeseries<int>(fullname, dit->second);
+        if (untimed_message) { series->set_has_bad_timestamps(); }
     }
     for (OnboardData::uintdata::const_iterator dit = msg.get_uintdata().begin(); dit != msg.get_uintdata().end(); ++dit) {
         if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
-        sys->track_generic_timeseries<unsigned int>(fullname, dit->second);
+        DataTimed *series = sys->track_generic_timeseries<unsigned int>(fullname, dit->second);
+        if (untimed_message) { series->set_has_bad_timestamps(); }
     }
     for (OnboardData::floatdata::const_iterator dit = msg.get_floatdata().begin(); dit != msg.get_floatdata().end(); ++dit) {
         if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
-        sys->track_generic_timeseries<float>(fullname, dit->second);
+        DataTimed *series = sys->track_generic_timeseries<float>(fullname, dit->second);
+        if (untimed_message) { series->set_has_bad_timestamps(); }
     }
+    // events
     for (OnboardData::stringdata::const_iterator dit = msg.get_stringdata().begin(); dit != msg.get_stringdata().end(); ++dit) {
         if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
-        sys->track_generic_event<std::string>(fullname, dit->second);
+        sys->track_generic_event<std::string>(fullname, dit->second);        
     }
 
     return true;

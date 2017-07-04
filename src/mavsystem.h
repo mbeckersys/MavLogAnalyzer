@@ -31,8 +31,8 @@
 #include <ostream>
 #include <typeinfo>
 #include <set>
-#include "data_timeseries.h"
-#include "data_untimed.h"
+#include "data_timeseries.h" // FIXME: use data_timed and data_untimed
+#include "data_param.h"
 #include "data_event.h"
 #include "data.h"
 #include "datagroup.h"
@@ -74,6 +74,7 @@ private:
     /**
      * @brief compute synthetic data based on raw data: takeoffs, landings, flight time
      */
+    void _postprocess_bad_timing();
     void _postprocess_flightbook();
     void _postprocess_powerstats();
     void _postprocess_glideperf_vel();
@@ -98,11 +99,6 @@ private:
      */
     bool _add_data(const Data*const src);
     void _del_data(Data*const src);
-
-#if 0
-    template <typename DT>
-    DT * _get_data(const std::string &fullpath) const;
-#endif
 
     void _data_cleanup();   
 
@@ -152,23 +148,7 @@ private:
         return NULL;
     }
 
-    /**
-     * @brief same as _get_data(), but for external use, where
-     * the returned pointer is const.
-     */
-    template <typename DT>
-    const DT *get_data(const char *fullpath, bool is_regex=false) const {
-        return get_data< DT >(std::string(fullpath), is_regex);
-    }
 
-    /**
-     * @brief same as get_data(), but with string argument
-     * (overloaded for convenience)
-     */
-    template <typename DT>
-    const DT *get_data(const std::string &fullpath, bool is_regex = false) const {
-        return const_cast<const DT *>(_get_data < DT > (fullpath, is_regex));
-    }
 
     /**
      * @brief create new data item
@@ -276,23 +256,45 @@ public:
      * @brief this function will directly enqueue the data under the given path
      * @param fullname
      * @param data
+     * @return ptr to data series (ifneeded)
      */
     template <typename T1>
-    void track_generic_timeseries(const std::string & fullname, const T1 & arg_data, const std::string &units = "") {
+    DataTimeseries<T1>* track_generic_timeseries(const std::string & fullname, const T1 & arg_data, const std::string &units = "") {
         MAVSYSTEM_DATA_ITEM(DataTimeseries<T1>, data, fullname, units);
         data->add_elem(arg_data, _time);
+        return data;
     }
 
     template <typename T2>
-    void track_generic_untimed(const std::string & fullname, const T2 & arg_data, const std::string &units = "") {
-        MAVSYSTEM_DATA_ITEM(DataUntimed<T2>, data, fullname, units);
+    DataParam<T2>* track_generic_untimed(const std::string & fullname, const T2 & arg_data, const std::string &units = "") {
+        MAVSYSTEM_DATA_ITEM(DataParam<T2>, data, fullname, units);
         data->add_elem(arg_data, _time);
+        return data;
     }
 
     template <typename T3>
-    void track_generic_event(const std::string & fullname, const T3 & arg_data, const std::string &units = "") {
+    DataEvent<T3>* track_generic_event(const std::string & fullname, const T3 & arg_data, const std::string &units = "") {
         MAVSYSTEM_DATA_ITEM(DataEvent<T3>, data, fullname, units);
         data->add_elem(arg_data, _time);
+        return data;
+    }
+
+    /**
+     * @brief same as _get_data(), but for external use, where
+     * the returned pointer is const.
+     */
+    template <typename DT>
+    const DT *get_data(const char *fullpath, bool is_regex=false) const {
+        return get_data< DT >(std::string(fullpath), is_regex);
+    }
+
+    /**
+     * @brief same as get_data(), but with string argument
+     * (overloaded for convenience)
+     */
+    template <typename DT>
+    const DT *get_data(const std::string &fullpath, bool is_regex = false) const {
+        return const_cast<const DT *>(_get_data < DT > (fullpath, is_regex));
     }
 
 #if 0

@@ -34,7 +34,7 @@
 #include "datagroup.h"
 #include "data_event.h"
 #include "data_timeseries.h"
-#include "data_untimed.h"
+#include "data_param.h"
 #include "treeitem.h"
 #include "time_fun.h"
 #include "mavsystem_macros.h"
@@ -175,13 +175,13 @@ void MavSystem::get_summary(string &buf) const {
         /***************************************/
         ss << "Flight Book:" << endl;
         /***************************************/
-        MAVSYSTEM_READ_DATA(DataUntimed<double>, first_takeoff, "flightbook/first takeoff");
+        MAVSYSTEM_READ_DATA(DataParam<double>, first_takeoff, "flightbook/first takeoff");
         if (first_takeoff) { ss << "   - first takeoff: " << epoch_to_datetime(first_takeoff->get_value() + (first_takeoff->get_epoch_datastart()/1E6)) << endl; }
-        MAVSYSTEM_READ_DATA(DataUntimed<double>, last_landing, "flightbook/last landing");
+        MAVSYSTEM_READ_DATA(DataParam<double>, last_landing, "flightbook/last landing");
         if (last_landing) { ss << "   - last landing: " << epoch_to_datetime(last_landing->get_value() + (last_landing->get_epoch_datastart()/1E6)) << endl; }
-        MAVSYSTEM_READ_DATA(DataUntimed<unsigned int>, nflights, "flightbook/number flights");
+        MAVSYSTEM_READ_DATA(DataParam<unsigned int>, nflights, "flightbook/number flights");
         if (nflights) { ss << "   - number of flights: " << nflights->get_value() << endl; }
-        MAVSYSTEM_READ_DATA(DataUntimed<double>, flighttime, "flightbook/total flight time");
+        MAVSYSTEM_READ_DATA(DataParam<double>, flighttime, "flightbook/total flight time");
         if (flighttime) { ss << "   - total flight time: " << seconds_to_timestr(flighttime->get_value(), false) << endl; }
 
         /***************************************/
@@ -1402,6 +1402,40 @@ void MavSystem::_postprocess_powerstats() {
 }
 
 /**
+ * @brief POST-PROCESSOR FOR TIMING:
+ * Some timeseries have inaccurate/bad timestamps. Here we assume that those messages
+ * are periodic, and we distribute them equi-distantly over the entire time span.
+ */
+void MavSystem::_postprocess_bad_timing() {
+
+    // first take a copy of the datamap, and then iterate that copy. This is because
+    // we are appending to the list here, which would otherwise loop infinitely
+    data_accessmap oldmap = _data_from_path;
+
+    for (data_accessmap::const_iterator it = oldmap.begin(); it != oldmap.end(); ++it) {
+        Data*const d = it->second;
+        if (d) {
+            DataTimed*ds = dynamic_cast<DataTimed*>(d);
+            if (ds && ds->has_bad_timestamps()) {
+                // create a backup
+                Data*data_orig = ds->Clone();
+                if (data_orig) {
+                    const std::string bak_name = ds->get_name() + "_orig";
+                    data_orig->set_name(bak_name);
+                    const std::string fullname = Data::get_fullname(data_orig);
+                    _data_register_hierarchy(fullname, data_orig);
+                }
+
+                // re-align timing
+                ds->make_periodic();
+                const std::string msg = "fixed timing of " + ds->get_name() + " (made periodic)";
+                Logger::Instance().write(MSG_INFO, msg, _logchannel);
+            }
+        }
+    }
+}
+
+/**
  * @brief POST-PROCESSOR FLIGHTBOOK: number of flights, first take-off, last landing, flight time
  * This is an example, how "computed data" can be produced based on other (raw or computed) data.
  */
@@ -1421,10 +1455,10 @@ void MavSystem::_postprocess_flightbook() {
 
     // generate new event data series
     MAVSYSTEM_DATA_ITEM(DataEvent<string>, evt_takeofflanding, "flightbook/takeoff_landing", "");
-    MAVSYSTEM_DATA_ITEM(DataUntimed<unsigned int>, data_nflights, "flightbook/number flights", "");
-    MAVSYSTEM_DATA_ITEM(DataUntimed<double>, data_flighttime, "flightbook/total flight time", "s");
-    MAVSYSTEM_DATA_ITEM(DataUntimed<double>, data_first_takeoff, "flightbook/first takeoff", "[time epoch]");
-    MAVSYSTEM_DATA_ITEM(DataUntimed<double>, data_last_landing, "flightbook/last landing", "[time epoch]");
+    MAVSYSTEM_DATA_ITEM(DataParam<unsigned int>, data_nflights, "flightbook/number flights", "");
+    MAVSYSTEM_DATA_ITEM(DataParam<double>, data_flighttime, "flightbook/total flight time", "s");
+    MAVSYSTEM_DATA_ITEM(DataParam<double>, data_first_takeoff, "flightbook/first takeoff", "[time epoch]");
+    MAVSYSTEM_DATA_ITEM(DataParam<double>, data_last_landing, "flightbook/last landing", "[time epoch]");
     evt_takeofflanding->set_type(Data::DATA_DERIVED);
     data_nflights->set_type(Data::DATA_DERIVED);
     data_flighttime->set_type(Data::DATA_DERIVED);
@@ -1482,7 +1516,8 @@ void MavSystem::_postprocess_flightbook() {
     _log(MSG_INFO, stringbuilder() << " #" << id  << ": postproc/flightbook: DONE.");
 }
 
-void MavSystem::postprocess() {   
+void MavSystem::postprocess() {
+    _postprocess_bad_timing();
     _postprocess_flightbook();
     _postprocess_powerstats();    
     _postprocess_glideperf_pos();

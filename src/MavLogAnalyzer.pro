@@ -129,7 +129,7 @@ HEADERS  += mainwindow.h \
     data_event.h \
     filefun.h \
     dialogdatadetails.h \
-    data_untimed.h \
+    data_param.h \
     config.h \
     time_fun.h \
     mavlinkscenario.h \
@@ -151,7 +151,9 @@ HEADERS  += mainwindow.h \
     logtablemodel.h \
     logmsg.h \
     onboardlogparser.h \
-    onboardlogparser_px4.h
+    onboardlogparser_px4.h \
+    data_timed.h \
+    data_untimed.h
 
 FORMS    += mainwindow.ui \
 	filterwindow.ui

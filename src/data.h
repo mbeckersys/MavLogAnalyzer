@@ -143,6 +143,12 @@ public:
     virtual const std::string &get_name() const { return _name; }
 
     /**
+     * @brief change name of data row (XXX: does not change placement in any hierarchy in mavsystem!)
+     * @param n
+     */
+    virtual void set_name(const std::string &n) { _name = n; }
+
+    /**
      * @brief is_present
      * @return if true, data is valid and can be used. else empty or invalid.
      */

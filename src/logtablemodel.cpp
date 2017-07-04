@@ -81,7 +81,7 @@ void LogTableModel::add_message(const std::string & emitter, logmsgtype_e typ, c
  * @param e
  */
 void LogTableModel::remove_emitter(const std::string &emitter) {
-    // TODO
+    // TODO: implement removal of emitter
 }
 
 QVariant LogTableModel::headerData(int section, Qt::Orientation orientation, int role) const {

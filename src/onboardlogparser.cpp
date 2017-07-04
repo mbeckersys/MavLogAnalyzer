@@ -1,6 +1,6 @@
 /**
  * @file onboardlogparser.cpp
- * @brief TODO: describe this file
+ * @brief Provides more readable names for onboard logs
  * @author Martin Becker <becker@rcs.ei.tum.de>
  * @date 1/20/2016
  

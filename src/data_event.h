@@ -33,10 +33,15 @@
 #include <string>
 #include <algorithm>
 #include <iomanip>
-#include "data.h"
+#include "data_timed.h"
 
+/**
+ * @brief an event is a series of timed data items, which
+ * are not statistically connected to each other.
+ * That is, there is no min/max/average
+ */
 template <typename T>
-class DataEvent : public Data {
+class DataEvent : public DataTimed {
 private:
     /********************************************
      *  MEMBER VARIABLES
@@ -48,10 +53,10 @@ private:
     T _dummy_item; ///< needed when empty
 
 public:    
-    DataEvent(std::string name) : Data(name), _n(0) {  }
+    DataEvent(std::string name) : DataTimed(name), _n(0) {  }
 
     // copy CTOR (DONE)
-    DataEvent(const DataEvent & other) : Data(other) {
+    DataEvent(const DataEvent & other) : DataTimed(other) {
         _n = other._n;
         _elems_data = other._elems_data; // deep copy by STL
         _elems_time = other._elems_time;
@@ -82,7 +87,7 @@ public:
     }
 
     bool get_stats_timewindow(double /*tmin*/, double /*tmax*/, data_stats & /*s*/) const {
-        return false; // TODO
+        return false; // FIXME: stats for events
     }
 
     const std::vector<double>& get_time() const {
@@ -119,6 +124,10 @@ public:
      */
     unsigned int size() const {
         return _n;
+    }
+
+    void make_periodic() {
+        // TODO: distribute events, or maybe even refuse.
     }
 
     // implements Data::export_csv()

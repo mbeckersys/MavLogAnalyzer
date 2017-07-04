@@ -275,7 +275,7 @@ void MainWindow::print() {
         printer.setDocName (docName);
     }
 
-    printer.setCreator("MavLogAnalyzer (C)2013-2016 Martin Becker");
+    printer.setCreator("MavLogAnalyzer (C)2013-2017 Martin Becker");
     printer.setOrientation(QPrinter::Landscape);
 
     QPrintDialog dialog(&printer);

@@ -19,7 +19,7 @@
 #include "mavlinkparser.h"
 #include "mavlinkscenario.h"
 #include "filefun.h"
-#include "data_untimed.h"
+#include "data_param.h"
 #include "data_event.h"
 #include "dialogprogressbar.h"
 
@@ -134,7 +134,7 @@ private:
     void _convertTimeSeriesToDoubleVectorTemplate(const DataTimeseries<TT> &dat, std::vector<double> &data, std::vector<double> &time);
     int _convertDataToDoubleVector(const Data *dat,std::vector <double>& data, std::vector <double>& time, std::string &type, std::map<std::string,double> &events, std::map<std::string,double> &newEvents, double &maxEventID);
     template <typename UT>
-    void _convertUntimedDataToDoubleVectorTemplate(const DataUntimed<UT> &dat, std::vector<double> &data, std::vector<double> &time);
+    void _convertUntimedDataToDoubleVectorTemplate(const DataParam<UT> &dat, std::vector<double> &data, std::vector<double> &time);
     int _loadScenarioFromDB(const int id, MavlinkScenario &scenario, DialogProgressBar*progress);
     int _loadCompleteScenarioFromDB(const int id, MavlinkScenario &scenario, DialogProgressBar*progress);
     int _getReverseEventsFromDB(std::map<double,std::string> &events);

@@ -415,7 +415,7 @@ int DBConnector::_convertDataToDoubleVector(const Data *dat,std::vector <double>
 
     /** DataUntimed*/
     {
-        const DataUntimed<float> *const usf = dynamic_cast<DataUntimed<float> const*>(dat);
+        const DataParam<float> *const usf = dynamic_cast<DataParam<float> const*>(dat);
         if (usf)
         {
             type = "float_untimed";
@@ -423,7 +423,7 @@ int DBConnector::_convertDataToDoubleVector(const Data *dat,std::vector <double>
             return 0;
         }
 
-        const DataUntimed<double> * usd = dynamic_cast<DataUntimed<double> const*>(dat);
+        const DataParam<double> * usd = dynamic_cast<DataParam<double> const*>(dat);
         if (usd)
         {
             type = "double_untimed";
@@ -431,7 +431,7 @@ int DBConnector::_convertDataToDoubleVector(const Data *dat,std::vector <double>
             return 0;
         }
 
-        const DataUntimed<unsigned int> * usu = dynamic_cast<DataUntimed<unsigned int> const*>(dat);
+        const DataParam<unsigned int> * usu = dynamic_cast<DataParam<unsigned int> const*>(dat);
         if (usu)
         {
             type = "uint_untimed";
@@ -439,7 +439,7 @@ int DBConnector::_convertDataToDoubleVector(const Data *dat,std::vector <double>
             return 0;
         }
 
-        const DataUntimed<int> * usi = dynamic_cast<DataUntimed<int> const*>(dat);
+        const DataParam<int> * usi = dynamic_cast<DataParam<int> const*>(dat);
         if (usi)
         {
             type = "int_untimed";
@@ -499,7 +499,7 @@ void DBConnector::_convertTimeSeriesToDoubleVectorTemplate(const DataTimeseries<
  * @param time output vector
  */
 template <typename UT>
-void DBConnector::_convertUntimedDataToDoubleVectorTemplate(const DataUntimed<UT> &dat, std::vector <double> &data, std::vector <double> &time)
+void DBConnector::_convertUntimedDataToDoubleVectorTemplate(const DataParam<UT> &dat, std::vector <double> &data, std::vector <double> &time)
 {
     data.push_back((double)dat.get_value());
     time.push_back(0.0);
@@ -929,22 +929,22 @@ bool DBConnector::_populateDataItem(double time, double value, const std::map<do
         dataIT->add_elem((int)value,time);
         return true;
     }
-    DataUntimed<float> *dataFU = dynamic_cast<DataUntimed<float> *>(data);
+    DataParam<float> *dataFU = dynamic_cast<DataParam<float> *>(data);
     if(dataFU) {
         dataFU->add_elem((float)value);
         return true;
     }
-    DataUntimed<double> *dataDU = dynamic_cast<DataUntimed<double> *>(data);
+    DataParam<double> *dataDU = dynamic_cast<DataParam<double> *>(data);
     if (dataDU) {
         dataDU->add_elem(value);
         return true;
     }
-    DataUntimed<unsigned int> *dataUU = dynamic_cast<DataUntimed<unsigned int> *>(data);
+    DataParam<unsigned int> *dataUU = dynamic_cast<DataParam<unsigned int> *>(data);
     if (dataUU) {
         dataUU->add_elem((unsigned int)value);
         return true;
     }
-    DataUntimed<int> *dataUI  = dynamic_cast<DataUntimed<int> *>(data);
+    DataParam<int> *dataUI  = dynamic_cast<DataParam<int> *>(data);
     if (dataUI) {
         dataUI->add_elem((int)value);
         return true;
@@ -978,6 +978,7 @@ bool DBConnector::_populateDataItem(double time, double value, const std::map<do
 Data* DBConnector::_fetchDataGroup(MavSystem*sys, const std::string& type, const std::string& path, const std::string& units) {
     Data*data = NULL;
 
+    // FIXME: use superclasses DataTimed, DataUntimed
     if(type == "float_timed") {
         data = sys->_get_and_possibly_create_data< DataTimeseries<float> > (path, units);
     } else if(type == "double_timed") {
@@ -987,13 +988,13 @@ Data* DBConnector::_fetchDataGroup(MavSystem*sys, const std::string& type, const
     } else if(type == "int_timed") {
         data = sys->_get_and_possibly_create_data< DataTimeseries<int> > (path, units);
     } else if(type == "float_untimed") {
-        data = sys->_get_and_possibly_create_data< DataUntimed<float> > (path, units);
+        data = sys->_get_and_possibly_create_data< DataParam<float> > (path, units);
     } else if(type == "double_untimed") {
-        data = sys->_get_and_possibly_create_data< DataUntimed<double> > (path, units);
+        data = sys->_get_and_possibly_create_data< DataParam<double> > (path, units);
     } else if(type == "uint_untimed") {
-        data = sys->_get_and_possibly_create_data< DataUntimed<unsigned int> > (path, units);
+        data = sys->_get_and_possibly_create_data< DataParam<unsigned int> > (path, units);
     } else if(type == "int_untimed") {
-        data = sys->_get_and_possibly_create_data< DataUntimed<int> > (path, units);
+        data = sys->_get_and_possibly_create_data< DataParam<int> > (path, units);
     } else if(type == "string_event") {
         data = sys->_get_and_possibly_create_data< DataEvent<std::string> > (path, units);
     }
