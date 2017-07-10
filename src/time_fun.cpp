@@ -29,22 +29,23 @@
 #include <sstream>
 #include <string.h> // memset
 #include <math.h>
+#include <chrono>
 #include "time_fun.h"
 #include "stringfun.h"
 
-#if defined(WIN32) || defined(__WIN32) || defined(__WIN32__)
+#if defined(WIN32) || defined(__WIN32) || defined(__WIN32__) || defined(_MSC_VER)
 #else
 #include <sys/time.h>
 #endif
 
 using namespace std;
 
-#if defined(WIN32) || defined(__WIN32) || defined(__WIN32__)
+#if defined(WIN32) || defined(__WIN32) || defined(__WIN32__) || defined(_MSC_VER)
 #include <ctype.h>
 #include <string.h>
 #include <time.h>
- 
- 
+
+
 /*
  * We do not implement alternate representations. However, we always
  * check whether a given modifier is allowed for a certain conversion.
@@ -422,21 +423,18 @@ int strncasecmp(char *s1, char *s2, size_t n)
         s1++;
         s2++;
     }
- 
+
     return tolower(*(unsigned char *) s1) - tolower(*(unsigned char *) s2);
 }
-
-double get_time_secs(void) {
-    return 0.; // TODO
-}
-
-#else /* NOT WIN32" */
-double get_time_secs(void) {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return ((double)(tv.tv_sec + (tv.tv_usec / 1E6)));
-}
 #endif /* WIN32 */
+
+double get_time_secs(void) {
+    using namespace std::chrono;
+    using float_sec_t = duration<double>;
+
+    const auto now = time_point_cast<float_sec_t>(system_clock::now());
+    return now.time_since_epoch().count();
+}
 
 struct tm epoch_to_tm(double epoch_sec) {
     time_t epoch_sec_t = (time_t) round(epoch_sec);

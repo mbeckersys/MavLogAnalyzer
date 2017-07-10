@@ -113,7 +113,7 @@ bool OnboardLogParserAPM::_parse_message(const csv_row & row, OnboardData & ret)
                 break;
 
             case 'Q':
-                ret._uint_data[colname] = ((u_int64_t) atoll(row[k].c_str()));
+                ret._uint_data[colname] = ((uint64_t) atoll(row[k].c_str()));
                 break;
 
             case 'M': // mode-string
