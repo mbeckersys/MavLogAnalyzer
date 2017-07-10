@@ -121,7 +121,7 @@ public:
     }
 
     // implements Data::merge_in()
-    virtual bool merge_in(const Data * const other ATTR_UNUSED) {
+    virtual bool merge_in(const Data * const /*other*/) {
         /**
          * This class does not support merging. It could be minimum, maximum, sum, average ,...
          * if you need this functionality, then derive this class and override it

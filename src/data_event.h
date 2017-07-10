@@ -105,7 +105,7 @@ public:
 
     unsigned long get_epoch_dataend() const {
         if (_elems_time.empty()) { return get_epoch_datastart(); }
-        return ((unsigned long) _elems_time.back()*1E6) + get_epoch_datastart();
+        return (unsigned long)( _elems_time.back()* 1E6) + get_epoch_datastart();
     }
 
     std::string describe_myself() const {
