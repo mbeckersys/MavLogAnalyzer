@@ -116,7 +116,7 @@ signals:
     void systemSelectionChangedSignal(); ///< indicate that someone clicked on another system -> we need to reload TreeView and the info box
 
 private:
-    void _addDataToPlot(TreeItem * const item);
+    void _addDataToPlot(TreeItem * item);
     void _addFile(double delay = 0.0);
     bool _fileLoaded(const QString &fname) const;
     MavlinkScenario* _forceChooseScenario(const std::vector<MavlinkScenario*>& items) const ;
