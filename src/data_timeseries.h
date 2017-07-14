@@ -51,6 +51,12 @@ class DataTimeseries : public DataTimed {
 private:
     typedef std::pair<double,T> datapair; ///< one item in the timeline is this
 
+    struct TimedSample{
+        double time;
+        T data;
+        bool operator<(const TimedSample& r){ return time < r.time; }
+    };
+
 public:
     /**
      * @brief Statistics
@@ -535,19 +541,16 @@ public:
             // INSERT: data is overlapping...we have to sort-in every single data item
 
             //merge time and data arrays into one array (SOA to AOS) for both our data and other data
-            struct TimedData{
-                double time;
-                T data;
-                bool operator<(const TimedData& r){ return time < r.time; }
-            };
-            std::vector<TimedData> own(_elems_time.size());
+            std::vector<TimedSample> own(_elems_time.size());
             for (size_t cnt = 0; cnt < _elems_time.size(); cnt++) {
-                own[cnt] = TimedData{_elems_time[cnt], _elems_data[cnt]};
+                TimedSample s = {_elems_time[cnt], _elems_data[cnt]};
+                own[cnt] = s;
             }
 
-            std::vector<TimedData> others(src->_elems_time.size());
+            std::vector<TimedSample> others(src->_elems_time.size());
             for (size_t cnt = 0; cnt < src->_elems_time.size(); cnt++) {
-                others[cnt] = TimedData{src->_elems_time[cnt] - dt_sec, src->_elems_data[cnt]};
+                TimedSample s = {src->_elems_time[cnt] - dt_sec, src->_elems_data[cnt]};
+                others[cnt] = s;
             }
 
             //merge the two series
@@ -557,7 +560,7 @@ public:
             //    assert(std::is_sorted(others.begin(),others.end()),"Other data is not sorted");
 
             const size_t total_size = _elems_time.size() + src->_elems_time.size();
-            std::vector<TimedData> merged(total_size);
+            std::vector<TimedSample> merged(total_size);
             std::merge(
                         own.begin(),
                         own.end(),
