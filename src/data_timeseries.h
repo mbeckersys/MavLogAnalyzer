@@ -51,6 +51,12 @@ class DataTimeseries : public DataTimed {
 private:
     typedef std::pair<double,T> datapair; ///< one item in the timeline is this
 
+    struct TimedSample{
+        double time;
+        T data;
+        bool operator<(const TimedSample& r){ return time < r.time; }
+    };
+
 public:
     /**
      * @brief Statistics
@@ -516,6 +522,8 @@ public:
         /*****************
          *  MERGING IN
          *****************/
+        _elems_time.reserve(_elems_time.size()+src->_elems_time.size());
+        _elems_data.reserve(_elems_data.size()+src->_elems_data.size());
         const bool do_fast_merge = (tmax_src < tmin_me) || (tmin_src > tmax_me); ///< checks for non-overlapping time ranges
         if (do_fast_merge) {
             if (dt_sec > 0.) {
@@ -531,24 +539,43 @@ public:
             }
         } else {
             // INSERT: data is overlapping...we have to sort-in every single data item
-            for (unsigned int k=0; k<src->_elems_time.size(); ++k) {
-                double tsrc = src->_elems_time[k];
-                if (dt_sec < 0.) {
-                    // adjust source's time
-                    tsrc = src->_elems_time[k] - dt_sec;
-                }
-                T datasrc = src->_elems_data[k];
-                std::vector<double>::iterator first_greater_time = std::upper_bound(_elems_time.begin(), _elems_time.end(), tsrc); // returns iterator to first element t1 where t1 > t holds true
-                if (first_greater_time != _elems_time.end()) {
-                    // insert before first_greater
-                    typename std::vector<T>::iterator first_greater_data = _elems_data.begin() + (first_greater_time - _elems_time.begin()); // calc index from iterator
-                    _elems_time.insert(first_greater_time, tsrc);
-                    _elems_data.insert(first_greater_data, datasrc);
-                } else {
-                    // there was none greater...append
-                    _elems_time.push_back(tsrc);
-                    _elems_data.push_back(datasrc);
-                }
+
+            //merge time and data arrays into one array (SOA to AOS) for both our data and other data
+            std::vector<TimedSample> own(_elems_time.size());
+            for (size_t cnt = 0; cnt < _elems_time.size(); cnt++) {
+                TimedSample s = {_elems_time[cnt], _elems_data[cnt]};
+                own[cnt] = s;
+            }
+
+            std::vector<TimedSample> others(src->_elems_time.size());
+            for (size_t cnt = 0; cnt < src->_elems_time.size(); cnt++) {
+                TimedSample s = {src->_elems_time[cnt] - dt_sec, src->_elems_data[cnt]};
+                others[cnt] = s;
+            }
+
+            //merge the two series
+
+            //c++11:
+            //    assert(std::is_sorted(own.begin(),own.end()),"Other data is not sorted");
+            //    assert(std::is_sorted(others.begin(),others.end()),"Other data is not sorted");
+
+            const size_t total_size = _elems_time.size() + src->_elems_time.size();
+            std::vector<TimedSample> merged(total_size);
+            std::merge(
+                        own.begin(),
+                        own.end(),
+                        others.begin(),
+                        others.end(),
+                        merged.begin()
+                        );
+
+            //split array containing time and data back into separate arrays
+            _elems_time.resize(total_size);
+            _elems_data.resize(total_size);
+
+            for (std::size_t i = 0; i < total_size; ++i) {
+                _elems_time[i] = merged[i].time;
+                _elems_data[i] = merged[i].data;
             }
         }
 
