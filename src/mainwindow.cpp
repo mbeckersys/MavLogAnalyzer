@@ -984,6 +984,7 @@ void MainWindow::_addFile(double delay) {
                         tmp_scene->add_onboard_message(d);
                     }
                 }
+                delete olp;
                 parsed = true;
             }
 

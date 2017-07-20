@@ -29,7 +29,7 @@
 OnboardLogParserFactory::OnboardLogParserFactory() {
     Register (OnboardLogParserPX4::get_extension(), &OnboardLogParserPX4::make_instance);
     Register (OnboardLogParserAPM::get_extension(), &OnboardLogParserAPM::make_instance);
-    //Register (OnboardLogParserULG::get_extension(), &OnboardLogParserULG::make_instance);
+    Register (OnboardLogParserULG::get_extension(), &OnboardLogParserULG::make_instance);
 }
 
 bool OnboardLogParserFactory::Register (const std::string & ext, Create_Parser_Function func) {

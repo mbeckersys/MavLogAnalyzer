@@ -24,8 +24,19 @@
 #ifndef ONBOARDLOGPARSERULG_H
 #define ONBOARDLOGPARSERULG_H
 
+#include <fstream>
+#include <inttypes.h>
+#include <string>
+#include <map>
 #include "onboardlogparser.h"
+#include "logger.h"
 
+#define ULOG_BUFLEN 2048
+
+/**
+ * @brief implements a Ulog parser. See https://dev.px4.io/en/log/ulog_file_format.html
+ * Closefly following PX4 firmware / replay (Apache 2.0 license).
+ */
 class OnboardLogParserULG : public OnboardLogParser
 {
 public:
@@ -46,11 +57,52 @@ public:
     static OnboardLogParser* make_instance() { return new OnboardLogParserULG; }
 
 private:
+
+    /*******************
+     * TYPES
+     *******************/
+    typedef enum  {
+        FORMAT = 'F',
+        DATA = 'D',
+        INFO = 'I',
+        INFO_MULTIPLE = 'M',
+        PARAMETER = 'P',
+        ADD_LOGGED_MSG = 'A',
+        REMOVE_LOGGED_MSG = 'R',
+        SYNC = 'S',
+        DROPOUT = 'O',
+        LOGGING = 'L',
+        FLAG_BITS = 'B',
+    } ULogMessageType;
+
+    /*******************
+     * METHODS
+     *******************/
+    bool _get_next_message(int&typ);
+    bool _get_header(void);
+    bool _get_defs(void);
+    bool _get_defs_flagbits(uint16_t siz);
+    bool _get_defs_format(uint16_t siz);
+    bool _get_defs_addlog(uint16_t siz);
+    bool _get_defs_param(uint16_t siz);
+    bool _get_log_message(int&typ);
+    void _log(logmsgtype_e t, const std::string & str);
+
     /*******************
      * ATTRIBUTES
      *******************/
-    std::string _filename;
+    std::string        _filename;
+    std::filebuf       _filebuf;
     Logger::logchannel*_logchannel;
+
+    typedef enum state_s {WAIT_HEADER, WAIT_DEFS, WAIT_DATA} state_e;
+
+    char         _buffer[ULOG_BUFLEN];
+    unsigned int _buflen;
+    state_e      _state;
+
+    uint64_t     _read_until_file_position; ///< read limit if log contains appended data
+    std::map<std::string, std::string> _file_formats; ///< all formats we read from the file
 };
 
 #endif // ONBOARDLOGPARSERULG_H

@@ -329,7 +329,7 @@ bool OnboardLogParserPX4::_get_next_message(int&ret) {
 
     // return type
     ret = _filebuf.snextc(); // proceed and read -> ptr is now on the type (3rd header field)
-    _filebuf.snextc(); // no points to first payload
+    _filebuf.snextc(); // now points to first payload
     return true;
 }
 
