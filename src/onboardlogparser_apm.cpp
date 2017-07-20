@@ -33,12 +33,12 @@ const std::string &OnboardLogParserAPM::get_filename(void) const {
 OnboardLogParserAPM::~OnboardLogParserAPM() {
 }
 
-OnboardLogParserAPM::OnboardLogParserAPM(std::string filename, Logger::logchannel *ch) : _filename(filename), _logchannel(ch) {
+OnboardLogParserAPM::OnboardLogParserAPM() : _filename(""), _logchannel(NULL) {
     valid = _parser.init(_filename.c_str());
 
     if (valid) {
         _parser.set_enclosed_char(enclosure_char, ENCLOSURE_NONE);
-        _parser.set_field_term_char(field_terminator);        
+        _parser.set_field_term_char(field_terminator);
         _parser.set_line_term_char(line_terminator);
     }
 
@@ -207,4 +207,19 @@ OnboardData OnboardLogParserAPM::get_data(void) {
 bool OnboardLogParserAPM::has_more_data(void) {
     if (!valid) return false;
     return _parser.has_more_rows();
+}
+
+bool OnboardLogParserAPM::Load (std::string filename, Logger::logchannel * ch) {
+    // initialize buffer
+    _filename = filename;
+    _logchannel = ch;
+
+    valid = _parser.init(_filename.c_str());
+
+    if (valid) {
+        _parser.set_enclosed_char(enclosure_char, ENCLOSURE_NONE);
+        _parser.set_field_term_char(field_terminator);
+        _parser.set_line_term_char(line_terminator);
+    }
+    return valid;
 }

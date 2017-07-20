@@ -42,7 +42,7 @@ public:
     /****************************************
      *     PUBLIC FUNCTIONS
      ****************************************/
-    OnboardLogParserAPM(std::string filename, Logger::logchannel * ch = NULL);
+    OnboardLogParserAPM();
     ~OnboardLogParserAPM();
 
     const std::string& get_filename(void) const;
@@ -52,6 +52,13 @@ public:
 
     // implements OnboardLogParser::get_data
     OnboardData get_data(void);
+
+    static std::string get_extension(void) { return "log"; }
+
+    //implement super
+    bool Load (std::string filename, Logger::logchannel * ch = NULL);
+
+    static OnboardLogParser* make_instance() { return new OnboardLogParserAPM; }
 
     /****************************************
      *     DATA MEMBERS

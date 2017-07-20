@@ -26,10 +26,26 @@
 
 #include <string>
 #include "onboarddata.h"
+#include "logger.h"
 
+#include <vector>
+#include <string>
+
+/**
+ * @brief The OnboardLogParser class
+ */
 class OnboardLogParser
 {
 public:
+
+    /**
+     * @brief Load
+     * @param filename
+     * @param ch
+     * @return
+     */
+    virtual bool Load (std::string filename, Logger::logchannel * ch = NULL) = 0;
+
     OnboardLogParser() : valid(false) {}
 
     /**
@@ -44,6 +60,17 @@ public:
      * @return true if so
      */
     virtual bool has_more_data(void) = 0;
+
+    /**
+     * @brief parser must return list of supported file extensions
+     * @return
+     */
+    //virtual std::string get_extension (void) = 0;
+
+    /**
+     * @brief return a new instance of my class
+     */
+    //virtual OnboardLogParser* make_instance (void) = 0;
 
     /****************************************
      *     DATA MEMBERS

@@ -66,8 +66,8 @@
 #include <qstringlistmodel.h>
 #include <qstandarditemmodel.h>
 #include "dialogselectscenario.h"
-#include "onboardlogparser_apm.h"
-#include "onboardlogparser_px4.h"
+#include "onboardlogparserfactory.h"
+
 //#include <qtconcurrentrun.h>
 
 using namespace std;
@@ -829,7 +829,10 @@ void MainWindow::_addFile(double delay) {
     QString startDir = _settings.value("last_directory","").toString();
     _settings.endGroup();
 
-    QStringList fileNames = QFileDialog::getOpenFileNames(NULL, "Add Files to scenario", startDir, "MavLink or onboard log (*.tlog *.log *.mavlink *.px4log)");
+    QStringList fileNames = QFileDialog::getOpenFileNames
+            (NULL,
+             "Add Files to scenario", startDir,
+             "MavLink or onboard log (*.tlog *.log *.mavlink *.px4log *.ulg);;All files (*.*)");
     if (fileNames.empty()) return;
 
     // save last path
@@ -964,20 +967,14 @@ void MainWindow::_addFile(double delay) {
 
                 }
                 parsed = true;
-            } else if (ext.compare("log") == 0 || ext.compare("px4log") == 0) {
-                /*****************
-                 * Onboard Log
-                 *****************/
-                OnboardLogParser *olp = NULL;
-                if (ext.compare("log") == 0) {
-                    olp = new OnboardLogParserAPM(f_fullpath.toStdString(), tmp_scene->getLogChannel());
-                } else if (ext.compare("px4log") == 0) {
-                    olp = new OnboardLogParserPX4(f_fullpath.toStdString(), tmp_scene->getLogChannel());
-                }
-                if (!olp) {
-                    qDebug() << "Could not allocate memory for new OnboardLogParser";
+            } else {
+                OnboardLogParser*olp = OnboardLogParserFactory::Instance().Create(ext);
+                if (!olp)  {
+                    qDebug() << "Could not find/allocate parser for extension " << QString::fromStdString(ext);
                     continue; // skip file
-                }                
+                }
+
+                olp->Load (f_fullpath.toStdString(), tmp_scene->getLogChannel());
                 if (!olp->valid) {continue;}
 
                 // - do the parsing into the scenario

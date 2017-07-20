@@ -107,7 +107,9 @@ SOURCES += main.cpp\
     dialogdatatable.cpp \
     logtablemodel.cpp \
     onboardlogparser_px4.cpp \
-    onboardlogparser.cpp
+    onboardlogparser.cpp \
+    Onboardlogparser_ulg.cpp \
+    onboardlogparserfactory.cpp
 
 # add CSV parser
 SOURCES += csv_parser/csv_parser.cpp
@@ -150,10 +152,12 @@ HEADERS  += mainwindow.h \
     dialogdatatable.h \
     logtablemodel.h \
     logmsg.h \
-    onboardlogparser.h \
     onboardlogparser_px4.h \
     data_timed.h \
-    data_untimed.h
+    data_untimed.h \
+    onboardlogparserfactory.h \
+    onboardlogparser.h \
+    onboardlogparser_ulg.h
 
 FORMS    += mainwindow.ui \
 	filterwindow.ui

@@ -33,7 +33,7 @@
 class OnboardLogParserPX4 : public OnboardLogParser
 {
 public:
-    OnboardLogParserPX4(std::string filename, Logger::logchannel * ch = NULL);
+    OnboardLogParserPX4();
     ~OnboardLogParserPX4();
 
     // implement OnboardLogParser::get_data
@@ -42,6 +42,12 @@ public:
     // implement OnboardLogParser::has_more_data
     bool has_more_data(void);
 
+    static std::string get_extension(void) { return "px4log"; }
+
+    // implement super
+    bool Load (std::string filename, Logger::logchannel * ch = NULL);
+
+    static OnboardLogParser* make_instance() { return new OnboardLogParserPX4; }
 private:
     // types
     typedef char datatype;

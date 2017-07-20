@@ -960,7 +960,6 @@ void MavSystem::_postprocess_glideperf_pos() {
      * Need: X, Y, Z position
      */
     const DataTimeseries<float> * data_x = NULL, * data_y = NULL, * data_z = NULL;
-    bool z_inverse = false;
 
     // search for x
     {
@@ -982,26 +981,26 @@ void MavSystem::_postprocess_glideperf_pos() {
     {
         const DataTimeseries<float> * const data_try = get_data <const DataTimeseries<float> >("\\bPD\\b", true);
         if (data_try) {
-            data_z = data_try;
-            z_inverse = true;
+            data_z = data_try;           
         }
     }
 
     if (data_x && data_y && data_z) {
         MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_dist, "glideperf/cum. horz. dist.", "m");
         data_dist->set_type(Data::DATA_DERIVED);
-        float x_pre, y_pre, z_pre, hdist_pre;
+        float x_pre, y_pre, hdist_pre;
         for (unsigned k=0; k<data_x->size(); ++k) {
             double t; float x, y, z;
-            data_x->get_data(k, t, x);
-            data_y->get_data_at_time(t, y);
-            data_z->get_data_at_time(t, z);
-            if (k>0) {
-                const float hdist = sqrt(pow(x-x_pre,2) + pow(y-y_pre,2)) + hdist_pre;
-                data_dist->add_elem(hdist, t);
-                hdist_pre = hdist;
+            if (data_x->get_data(k, t, x) && data_y->get_data_at_time(t, y) && data_z->get_data_at_time(t, z)) {
+                if (k>0) {
+                    const float hdist = sqrt(pow(x-x_pre,2) + pow(y-y_pre,2)) + hdist_pre;
+                    data_dist->add_elem(hdist, t);
+                    hdist_pre = hdist;
+                }
+                x_pre = x; y_pre = y;
+            } else {
+                _log(MSG_WARN, stringbuilder() << " #" << id << ": postproc/glideperf: failed getting position data");
             }
-            x_pre = x; y_pre = y; z_pre = z;
         }
     }
 }
@@ -1096,10 +1095,12 @@ void MavSystem::_postprocess_glideperf_vel() {
             MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_newspeed, "glideperf/groundspeed", "VE and VN");
             for (unsigned int k=0; k < data_try1->size(); ++k) {
                 double t; float vn, ve;
-                data_try1->get_data(k, t, ve);
-                data_try2->get_data_at_time(t, vn);
-                float total = sqrt(pow(ve,2) + pow(vn,2));
-                data_newspeed->add_elem(total, t);
+                if (data_try1->get_data(k, t, ve) && data_try2->get_data_at_time(t, vn)) {
+                    float total = sqrt(pow(ve,2) + pow(vn,2));
+                    data_newspeed->add_elem(total, t);
+                } else {
+                    _log(MSG_WARN, stringbuilder() << " #" << id << ": postproc/glideperf: failed getting ground speed");
+                }
             }
             data_newspeed->set_type(Data::DATA_DERIVED);
             data_gspeed = data_newspeed;

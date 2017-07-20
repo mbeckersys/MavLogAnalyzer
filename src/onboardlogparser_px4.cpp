@@ -46,11 +46,9 @@
 
 using namespace std;
 
-OnboardLogParserPX4::OnboardLogParserPX4(std::string filename, Logger::logchannel *ch) : _filename(filename), _logchannel(ch), _consumed(0)
+OnboardLogParserPX4::OnboardLogParserPX4() : _filename(""), _logchannel(NULL), _consumed(0)
 {
-    // initialize buffer
-    _filebuf.open(filename.c_str(), std::ios_base::binary | std::ios_base::in);
-    valid = _filebuf.is_open();
+    // bootstrap
     _register_fmt(0x80, 89, "FMT", "BBnNZ", "Type,Length,Name,Format,Labels");
 }
 
@@ -340,4 +338,13 @@ bool OnboardLogParserPX4::has_more_data(void) {
     if (!valid) return false;
 
     return (_filebuf.sgetc() != std::char_traits<char>::eof());
+}
+
+bool OnboardLogParserPX4::Load (std::string filename, Logger::logchannel * ch) {
+    // initialize buffer
+    _filename = filename;
+    _logchannel = ch;
+    _filebuf.open(filename.c_str(), std::ios_base::binary | std::ios_base::in);
+    valid = _filebuf.is_open();
+    return valid;
 }
