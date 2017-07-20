@@ -400,12 +400,12 @@ MavSystem::~MavSystem() {
 }
 
 void MavSystem::track_system(uint8_t stype, uint8_t status, uint8_t atype, uint8_t basemode, uint8_t custmode) {
-    MAVSYSTEM_DATA_ITEM(DataEvent<string>, evt_armed, "mission/armed", "");
-    MAVSYSTEM_DATA_ITEM(DataEvent<string>, evt_stabilized, "mission/stabilized", "");
-    MAVSYSTEM_DATA_ITEM(DataEvent<string>, evt_guided, "mission/guided", "");
-    MAVSYSTEM_DATA_ITEM(DataEvent<string>, evt_manual, "mission/manual", "");
-    MAVSYSTEM_DATA_ITEM(DataEvent<string>, evt_status, "system/status", "MAV_STATE_ENUM");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_custmode, "system/custom_mode", "autopilot-specific mode");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataEvent<string>, evt_armed, "mission/armed", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataEvent<string>, evt_stabilized, "mission/stabilized", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataEvent<string>, evt_guided, "mission/guided", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataEvent<string>, evt_manual, "mission/manual", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataEvent<string>, evt_status, "system/status", "MAV_STATE_ENUM");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_custmode, "system/custom_mode", "autopilot-specific mode");
 
     data_custmode->add_elem(custmode, _time);
 
@@ -535,9 +535,9 @@ void MavSystem::track_system(uint8_t stype, uint8_t status, uint8_t atype, uint8
  * @param bat_A
  */
 void MavSystem::track_sysperf(float load, float bat_V, float bat_A) {        
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_autopilot_load, "computer/autopilot_load", "%");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_battery_volt,   "power/battery_voltage", "V");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_battery_amps,   "power/battery_current", "A");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_autopilot_load, "computer/autopilot_load", "%");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_battery_volt,   "power/battery_voltage", "V");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_battery_amps,   "power/battery_current", "A");
 
     data_autopilot_load->add_elem(load, _time);
     if (bat_A > 0.) data_battery_amps->add_elem(bat_A, _time);
@@ -550,8 +550,8 @@ void MavSystem::track_sysperf(float load, float bat_V, float bat_A) {
  * @param press_hPa
  */
 void MavSystem::track_ambient(float temp_degC, float press_hPa) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_temp, "environment/temperature", "deg C");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_press, "environment/static pressure", "hPa");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_temp, "environment/temperature", "deg C");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_press, "environment/static pressure", "hPa");
 
     data_press->add_elem(press_hPa, _time);
     data_temp->add_elem(temp_degC, _time);
@@ -564,7 +564,7 @@ void MavSystem::track_ambient(float temp_degC, float press_hPa) {
  * @param whatwasdone to indicate how the caller processed the message; useful to see if MavLogAnalyzer misses messages
  */
 void MavSystem::track_mavlink(unsigned int data_length_bytes, unsigned int msgid, mavlink_parsed_e whatwasdone) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_throughput, "radio/throughput", "kbps");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_throughput, "radio/throughput", "kbps");
 
     // accumulate amount of sent data between two successive time references
     _mavlink_summary._link_throughput_bytes += data_length_bytes;
@@ -602,11 +602,11 @@ void MavSystem::track_mavlink(unsigned int data_length_bytes, unsigned int msgid
  * @param throttle_percent
  */
 void MavSystem::track_flightperf(float airspeed_ms, float groundspeed_ms, float /*alt_MSL_m*/, float climb_ms, float throttle_percent) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_airspeed_ms, "airstate/airspeed", "m/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_groundspeed_ms, "airstate/groundspeed", "m/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_alt_MSL_m, "airstate/alt MSL", "m");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_climb_ms, "airstate/climb", "m/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_throttle_percent, "airstate/throttle", "%");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_airspeed_ms, "airstate/airspeed", "m/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_groundspeed_ms, "airstate/groundspeed", "m/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_alt_MSL_m, "airstate/alt MSL", "m");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_climb_ms, "airstate/climb", "m/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_throttle_percent, "airstate/throttle", "%");
 
     data_airspeed_ms->add_elem(airspeed_ms, _time);
     data_groundspeed_ms->add_elem(groundspeed_ms, _time);
@@ -622,11 +622,11 @@ void MavSystem::track_flightperf(float airspeed_ms, float groundspeed_ms, float 
  * @param alt_rel_m
  */
 void MavSystem::track_paths(double lat, double lon, float alt_rel_m, float alt_msl_m, float heading_deg) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<double>, data_lat, "airstate/lat", "");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<double>, data_lon, "airstate/lon", "");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_alt_GND, "airstate/alt GND", "m");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_alt_MSL, "airstate/alt MSL", "m");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_heading, "airstate/heading", "deg");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<double>, data_lat, "airstate/lat", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<double>, data_lon, "airstate/lon", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_alt_GND, "airstate/alt GND", "m");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_alt_MSL, "airstate/alt MSL", "m");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_heading, "airstate/heading", "deg");
 
     data_lat->add_elem(lat, _time);
     data_lon->add_elem(lon, _time);
@@ -638,12 +638,12 @@ void MavSystem::track_paths(double lat, double lon, float alt_rel_m, float alt_m
 }
 
 void MavSystem::track_paths_attitude(const float rpy[], const float speed_rpy[]) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, roll, "airstate/angles/roll", "deg");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, pitch, "airstate/angles/pitch", "deg");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, yaw, "airstate/angles/yaw", "deg");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, omg_x, "airstate/rate/roll rate", "deg/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, omg_y, "airstate/rate/pitch rate", "deg/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, omg_z, "airstate/rate/yaw rate", "deg/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, roll, "airstate/angles/roll", "deg");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, pitch, "airstate/angles/pitch", "deg");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, yaw, "airstate/angles/yaw", "deg");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, omg_x, "airstate/rate/roll rate", "deg/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, omg_y, "airstate/rate/pitch rate", "deg/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, omg_z, "airstate/rate/yaw rate", "deg/s");
 
     roll->add_elem(RAD2DEG(rpy[0]), _time);
     pitch->add_elem(RAD2DEG(rpy[1]), _time);
@@ -654,25 +654,25 @@ void MavSystem::track_paths_attitude(const float rpy[], const float speed_rpy[])
 }
 
 void MavSystem::track_mission_current(uint16_t seq) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_current, "mission/current seq", "item id");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_current, "mission/current seq", "item id");
     data_current->add_elem(seq, _time);
 }
 
 void MavSystem::track_mission_item(uint8_t target_system_id, uint8_t target_comp_id, uint16_t seq, uint8_t frame, uint16_t command, uint8_t current, uint8_t autocontinue, float param1, float param2, float param3, float param4, float x, float y, float z) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_sysid,  "mission/target system id", "item id");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_compid, "mission/component id", "item id");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_seq,    "mission/seq", "item id");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_frame,  "mission/frame", "MAV_FRAME enum");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_command, "mission/command", "MAV_CMD enum");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_current, "mission/current", "bool");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_autocont, "mission/autocontinue", "");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_param1, "mission/param1", "MAV_CMD enum");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_param2, "mission/param2", "MAV_CMD enum");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_param3, "mission/param3", "MAV_CMD enum");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_param4, "mission/param4", "MAV_CMD enum");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_x, "mission/x", "local: x pos. global: latitude");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_y, "mission/y", "local: y pos. global: longitude");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_z, "mission/z", "local: z pos. global: alt (rel. or abs.)");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_sysid,  "mission/target system id", "item id");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_compid, "mission/component id", "item id");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_seq,    "mission/seq", "item id");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_frame,  "mission/frame", "MAV_FRAME enum");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_command, "mission/command", "MAV_CMD enum");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_current, "mission/current", "bool");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_autocont, "mission/autocontinue", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_param1, "mission/param1", "MAV_CMD enum");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_param2, "mission/param2", "MAV_CMD enum");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_param3, "mission/param3", "MAV_CMD enum");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_param4, "mission/param4", "MAV_CMD enum");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_x, "mission/x", "local: x pos. global: latitude");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_y, "mission/y", "local: y pos. global: longitude");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_z, "mission/z", "local: z pos. global: alt (rel. or abs.)");
 
     data_sysid->add_elem(target_system_id, _time);
     data_compid->add_elem(target_comp_id, _time);
@@ -707,9 +707,9 @@ void MavSystem::track_rc(const uint16_t channels[8]) {
 }
 
 void MavSystem::track_paths_speed(const float v[]) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_vx, "airstate/speed/vx", "m/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_vy, "airstate/speed/vy", "m/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_vz, "airstate/speed/vz", "m/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_vx, "airstate/speed/vx", "m/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_vy, "airstate/speed/vy", "m/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_vz, "airstate/speed/vz", "m/s");
 
     data_vx->add_elem(v[0], _time);
     data_vy->add_elem(v[1], _time);
@@ -718,13 +718,13 @@ void MavSystem::track_paths_speed(const float v[]) {
 
 void MavSystem::track_gps_status(double lat, double lon, float alt_wgs, float hdop, float vdop,
                                  float vel_ms, float groundcourse) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<double>, data_lat, "GPS/lat", "");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<double>, data_lon, "GPS/lon", "");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_alt, "GPS/alt WGS84", "m");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_hdop, "GPS/hdop", "m");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_vdop, "GPS/vdop", "m");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_velo, "GPS/ground speed", "m/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_cog, "GPS/ground course", "deg");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<double>, data_lat, "GPS/lat", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<double>, data_lon, "GPS/lon", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_alt, "GPS/alt WGS84", "m");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_hdop, "GPS/hdop", "m");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_vdop, "GPS/vdop", "m");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_velo, "GPS/ground speed", "m/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_cog, "GPS/ground course", "deg");
 
     data_lat->add_elem(lat, _time);
     data_lon->add_elem(lon, _time);
@@ -741,8 +741,8 @@ void MavSystem::track_gps_status(double lat, double lon, float alt_wgs, float hd
  * @param fix_type
  */
 void MavSystem::track_gps_status(uint8_t n_sat, uint8_t fix_type) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, gps_sat, "GPS/num sat", "");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, gps_fix, "GPS/fix type", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, gps_sat, "GPS/num sat", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, gps_fix, "GPS/fix type", "");
     gps_sat->add_elem(n_sat, _time);
 
     if (fix_type < 255) {
@@ -751,15 +751,15 @@ void MavSystem::track_gps_status(uint8_t n_sat, uint8_t fix_type) {
 }
 
 void MavSystem::track_imu2(const int16_t acc_mg[], const int16_t gyr_mrs[], const int16_t mag_mT[]) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, xacc_mg, "IMU2/acc/acc x", "g");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, yacc_mg, "IMU2/acc/acc y", "g");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, zacc_mg, "IMU2/acc/acc z", "g");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, xgyr_mrs, "IMU2/gyro/omg x", "rad/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, ygyr_mrs, "IMU2/gyro/omg y", "rad/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, zgyr_mrs, "IMU2/gyro/omg z", "rad/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, xmag_mT, "IMU2/magnetic/mag x", "T");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, ymag_mT, "IMU2/magnetic/mag y", "T");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, zmag_mT, "IMU2/magnetic/mag z", "T");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, xacc_mg, "IMU2/acc/acc x", "g");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, yacc_mg, "IMU2/acc/acc y", "g");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, zacc_mg, "IMU2/acc/acc z", "g");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, xgyr_mrs, "IMU2/gyro/omg x", "rad/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, ygyr_mrs, "IMU2/gyro/omg y", "rad/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, zgyr_mrs, "IMU2/gyro/omg z", "rad/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, xmag_mT, "IMU2/magnetic/mag x", "T");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, ymag_mT, "IMU2/magnetic/mag y", "T");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, zmag_mT, "IMU2/magnetic/mag z", "T");
 
     xacc_mg->add_elem(acc_mg[0]/1000.f, _time);
     yacc_mg->add_elem(acc_mg[1]/1000.f, _time);
@@ -773,62 +773,62 @@ void MavSystem::track_imu2(const int16_t acc_mg[], const int16_t gyr_mrs[], cons
 }
 
 void MavSystem::track_imu_highres_acc(const float xyz[]) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, x, "IMU-highres/acc/acc x", "m/s/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, y, "IMU-highres/acc/acc y", "m/s/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, z, "IMU-highres/acc/acc z", "m/s/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, x, "IMU-highres/acc/acc x", "m/s/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, y, "IMU-highres/acc/acc y", "m/s/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, z, "IMU-highres/acc/acc z", "m/s/s");
     x->add_elem(xyz[0], _time);
     y->add_elem(xyz[1], _time);
     z->add_elem(xyz[2], _time);
 }
 
 void MavSystem::track_imu_highres_gyr(const float xyz[]) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, x, "IMU-highres/gyro/omg x", "rad/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, y, "IMU-highres/gyro/omg y", "rad/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, z, "IMU-highres/gyro/omg z", "rad/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, x, "IMU-highres/gyro/omg x", "rad/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, y, "IMU-highres/gyro/omg y", "rad/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, z, "IMU-highres/gyro/omg z", "rad/s");
     x->add_elem(xyz[0], _time);
     y->add_elem(xyz[1], _time);
     z->add_elem(xyz[2], _time);
 }
 
 void MavSystem::track_imu_highres_mag(const float xyz[]) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, x, "IMU-highres/mag/field x", "G");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, y, "IMU-highres/mag/field y", "G");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, z, "IMU-highres/mag/field z", "G");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, x, "IMU-highres/mag/field x", "G");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, y, "IMU-highres/mag/field y", "G");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, z, "IMU-highres/mag/field z", "G");
     x->add_elem(xyz[0], _time);
     y->add_elem(xyz[1], _time);
     z->add_elem(xyz[2], _time);
 }
 
 void MavSystem::track_imu_highres_temp(float temp_degC) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, d, "IMU-highres/temperature", "deg C");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, d, "IMU-highres/temperature", "deg C");
     d->add_elem(temp_degC, _time);
 }
 
 void MavSystem::track_imu_highres_pressabs(const float press_mbar) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, d, "IMU-highres/pressure abs", "mbar");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, d, "IMU-highres/pressure abs", "mbar");
     d->add_elem(press_mbar, _time);
 }
 
 void MavSystem::track_imu_highres_pressalt(float alt_m) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, d, "IMU-highres/pressure altitude", "m");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, d, "IMU-highres/pressure altitude", "m");
     d->add_elem(alt_m, _time);
 }
 
 void MavSystem::track_imu_highres_pressdiff(float press_mbar) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, d, "IMU-highres/pressure diff", "mbar");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, d, "IMU-highres/pressure diff", "mbar");
     d->add_elem(press_mbar, _time);
 }
 
 void MavSystem::track_imu1(const int16_t acc_mg[], const int16_t gyr_mrs[], const int16_t mag_mT[]) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, xacc_mg, "IMU1/acc/acc x", "g");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, yacc_mg, "IMU1/acc/acc y", "g");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, zacc_mg, "IMU1/acc/acc z", "g");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, xgyr_mrs, "IMU1/gyro/omg x", "rad/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, ygyr_mrs, "IMU1/gyro/omg y", "rad/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, zgyr_mrs, "IMU1/gyro/omg z", "rad/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, xmag_mT, "IMU1/magnetic/mag x", "T");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, ymag_mT, "IMU1/magnetic/mag y", "T");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, zmag_mT, "IMU1/magnetic/mag z", "T");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, xacc_mg, "IMU1/acc/acc x", "g");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, yacc_mg, "IMU1/acc/acc y", "g");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, zacc_mg, "IMU1/acc/acc z", "g");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, xgyr_mrs, "IMU1/gyro/omg x", "rad/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, ygyr_mrs, "IMU1/gyro/omg y", "rad/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, zgyr_mrs, "IMU1/gyro/omg z", "rad/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, xmag_mT, "IMU1/magnetic/mag x", "T");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, ymag_mT, "IMU1/magnetic/mag y", "T");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, zmag_mT, "IMU1/magnetic/mag z", "T");
 
     xacc_mg->add_elem(acc_mg[0]/1000.f, _time);
     yacc_mg->add_elem(acc_mg[1]/1000.f, _time);
@@ -860,13 +860,13 @@ void MavSystem::track_actuators(const uint16_t servo_raw[]) {
 void MavSystem::track_radio(uint8_t rssi, uint8_t noise, uint16_t rxerr,
                             uint16_t rxerr_corrected, uint8_t txbuf_percent,
                             uint8_t rem_rssi, uint8_t rem_noise) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_rssi, "radio/RSSI", "");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_noise, "radio/noise", "");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_rxerr, "radio/rx errors", "");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_rxerr_corrected, "radio/fixed rx errors", "");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_txbuf, "radio/tx buffer", "%");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_rem_rssi, "radio/remote RSSI", "");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_rem_noise, "radio/remote noise", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_rssi, "radio/RSSI", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_noise, "radio/noise", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_rxerr, "radio/rx errors", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_rxerr_corrected, "radio/fixed rx errors", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_txbuf, "radio/tx buffer", "%");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_rem_rssi, "radio/remote RSSI", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_rem_noise, "radio/remote noise", "");
 
     data_rssi->add_elem(rssi, _time);
     data_noise->add_elem(noise, _time);
@@ -878,19 +878,19 @@ void MavSystem::track_radio(uint8_t rssi, uint8_t noise, uint16_t rxerr,
 }
 
 void MavSystem::track_radio(uint8_t rssi) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_rssi, "radio/RSSI", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_rssi, "radio/RSSI", "");
     data_rssi->add_elem(rssi, _time);
 }
 
 void MavSystem::track_radio_droprate(float percent) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_drop, "radio/overall drop rate", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_drop, "radio/overall drop rate", "");
     data_drop->add_elem(percent, _time);
 }
 
 void MavSystem::track_power(float Vcc, float Vservo, uint16_t flags) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_vcc, "power/Vcc", "V");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_vservo, "power/Vservo", "V");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_flags, "power/flags", "MAV_POWER_STATUS");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_vcc, "power/Vcc", "V");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_vservo, "power/Vservo", "V");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_flags, "power/flags", "MAV_POWER_STATUS");
 
     data_vcc->add_elem(Vcc, _time);
     data_vservo->add_elem(Vservo, _time);
@@ -910,8 +910,8 @@ void MavSystem::track_system_errors(uint16_t errors_count [4]) {
 }
 
 void MavSystem::track_statustext(const char*text, uint8_t severity) {
-    MAVSYSTEM_DATA_ITEM(DataEvent<string>, data_text, "system/statustext", "string");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_sev, "system/statustext_severity", "int");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataEvent<string>, data_text, "system/statustext", "string");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_sev, "system/statustext_severity", "int");
 
     data_text->add_elem(string(text), _time);
     data_sev->add_elem(severity, _time);
@@ -920,9 +920,9 @@ void MavSystem::track_statustext(const char*text, uint8_t severity) {
 }
 
 void MavSystem::track_system_sensors(uint32_t present, uint32_t enabled, uint32_t health) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_spresent, "system/sensors present", "MAV_SYS_STATUS_SENSOR");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_senabled, "system/sensors enabled", "MAV_SYS_STATUS_SENSOR");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<unsigned int>, data_shealth,  "system/sensors health", "MAV_SYS_STATUS_SENSOR");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_spresent, "system/sensors present", "MAV_SYS_STATUS_SENSOR");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_senabled, "system/sensors enabled", "MAV_SYS_STATUS_SENSOR");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<unsigned int>, data_shealth,  "system/sensors health", "MAV_SYS_STATUS_SENSOR");
 
     data_spresent->add_elem(present, _time);
     data_senabled->add_elem(enabled, _time);
@@ -932,14 +932,14 @@ void MavSystem::track_system_sensors(uint32_t present, uint32_t enabled, uint32_
 void MavSystem::track_nav(float nav_roll_deg, float nav_pitch_deg, float nav_bear_deg,
                           float tar_bear_deg, float wp_dist_m, float err_alt_m,
                           float err_airspeed_ms, float err_xtrack_m) {
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_roll, "navigation/nav roll", "deg");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_pitch, "navigation/nav pitch", "deg");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_bear, "navigation/nav bearing", "deg");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_tbear, "navigation/target bearing", "deg");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_wpdist, "navigation/dist waypoint", "m");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_err_alt, "navigation/error altitude", "m");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_err_speed, "navigation/error airspeed", "m/s");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_err_xtrack, "navigation/error x-track", "m");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_roll, "navigation/nav roll", "deg");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_pitch, "navigation/nav pitch", "deg");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_bear, "navigation/nav bearing", "deg");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_tbear, "navigation/target bearing", "deg");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_wpdist, "navigation/dist waypoint", "m");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_err_alt, "navigation/error altitude", "m");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_err_speed, "navigation/error airspeed", "m/s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_err_xtrack, "navigation/error x-track", "m");
 
     data_roll->add_elem(nav_roll_deg, _time);
     data_pitch->add_elem(nav_pitch_deg, _time);
@@ -988,7 +988,7 @@ void MavSystem::_postprocess_glideperf_pos() {
     }
 
     if (data_x && data_y && data_z) {
-        MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_dist, "glideperf/cum. horz. dist.", "m");
+        MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_dist, "glideperf/cum. horz. dist.", "m");
         data_dist->set_type(Data::DATA_DERIVED);
         float x_pre, y_pre, z_pre, hdist_pre;
         for (unsigned k=0; k<data_x->size(); ++k) {
@@ -1093,7 +1093,7 @@ void MavSystem::_postprocess_glideperf_vel() {
         if (data_try1 && data_try2) {
             // if present, we believe the data
             // fuse to scalar
-            MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_newspeed, "glideperf/groundspeed", "VE and VN");
+            MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_newspeed, "glideperf/groundspeed", "VE and VN");
             for (unsigned int k=0; k < data_try1->size(); ++k) {
                 double t; float vn, ve;
                 data_try1->get_data(k, t, ve);
@@ -1178,14 +1178,14 @@ void MavSystem::_postprocess_glideperf_vel() {
 
     // finally...compute glide ratio
     {
-        MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_glideratio, "glideperf/glide ratio", "ratio");        
+        MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_glideratio, "glideperf/glide ratio", "ratio");
         data_glideratio->set_type(Data::DATA_DERIVED);
         data_glideratio->clear();
 
         // do wind first, if any
         if (have_wind) {
-            MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_winddir, "glideperf/wind direction", "degree, coming from (aeronautic convention)");
-            MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_windspd, "glideperf/wind speed", "same units as VWE and VWN");
+            MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_winddir, "glideperf/wind direction", "degree, coming from (aeronautic convention)");
+            MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_windspd, "glideperf/wind speed", "same units as VWE and VWN");
             data_winddir->set_type(Data::DATA_DERIVED);
             data_windspd->set_type(Data::DATA_DERIVED);
             for (unsigned int k=0; k < data_windE->size(); ++k) {
@@ -1212,8 +1212,8 @@ void MavSystem::_postprocess_glideperf_vel() {
                 float winddir_inv = DEG2RAD(angle360(winddir-180.));
                 float windrel = acos(cos(winddir_inv) * cos(yaw) + sin(winddir_inv) * sin(yaw));
                 float windhd = -cos(windrel)*windspd;
-                MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_windrel, "glideperf/relative wind angle", "degree between yaw angle and wind direction");
-                MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_windhd, "glideperf/head wind", "same units as VWE and VWN");
+                MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_windrel, "glideperf/relative wind angle", "degree between yaw angle and wind direction");
+                MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_windhd, "glideperf/head wind", "same units as VWE and VWN");
                 data_windrel->set_type(Data::DATA_DERIVED);
                 data_windhd->set_type(Data::DATA_DERIVED);
                 data_windrel->add_elem(RAD2DEG(windrel), t);
@@ -1221,7 +1221,7 @@ void MavSystem::_postprocess_glideperf_vel() {
 
                 if (data_gspeed) {
                     // we estimate airspeed...even when there is a sensor. That is a good exercise.
-                    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_airspeedest, "glideperf/airspeed estimate", "same units as VWE and VWN");
+                    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_airspeedest, "glideperf/airspeed estimate", "same units as VWE and VWN");
                     data_airspeedest->set_type(Data::DATA_DERIVED);
                     float airspeed = 0.; data_gspeed->get_data_at_time(t, airspeed);
                     airspeed += windhd; // compensate with headwind
@@ -1269,7 +1269,7 @@ void MavSystem::_postprocess_glideperf_vel() {
             }
         }
 
-        MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_glideratio5, "glideperf/glide ratio 5sec avg", "ratio");        
+        MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_glideratio5, "glideperf/glide ratio 5sec avg", "ratio");
         data_glideratio->moving_average(*data_glideratio5, 5.0);
 
         // TODO: phenomenologic glide ratio from distance traveled vs altitude loss
@@ -1296,11 +1296,11 @@ void MavSystem::_postprocess_powerstats() {
     unsigned long epoch_datastart_usec = data_battery_amps->get_epoch_datastart();
 
     // generate power consumption
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_power, "power/power", "W");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_consumption, "power/inst. consumption", "Ws");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_charge, "power/inst. charge", "As");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_cconsumption, "power/cum. consumption", "Wh");
-    MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_ccharge, "power/cum. charge", "Ah");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_power, "power/power", "W");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_consumption, "power/inst. consumption", "Ws");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_charge, "power/inst. charge", "As");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_cconsumption, "power/cum. consumption", "Wh");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_ccharge, "power/cum. charge", "Ah");
     data_power->set_type(Data::DATA_DERIVED);
     data_consumption->set_type(Data::DATA_DERIVED);
     data_cconsumption->set_type(Data::DATA_DERIVED);
@@ -1454,11 +1454,11 @@ void MavSystem::_postprocess_flightbook() {
     unsigned long epoch_datastart_usec = data_alt->get_epoch_datastart();
 
     // generate new event data series
-    MAVSYSTEM_DATA_ITEM(DataEvent<string>, evt_takeofflanding, "flightbook/takeoff_landing", "");
-    MAVSYSTEM_DATA_ITEM(DataParam<unsigned int>, data_nflights, "flightbook/number flights", "");
-    MAVSYSTEM_DATA_ITEM(DataParam<double>, data_flighttime, "flightbook/total flight time", "s");
-    MAVSYSTEM_DATA_ITEM(DataParam<double>, data_first_takeoff, "flightbook/first takeoff", "[time epoch]");
-    MAVSYSTEM_DATA_ITEM(DataParam<double>, data_last_landing, "flightbook/last landing", "[time epoch]");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataEvent<string>, evt_takeofflanding, "flightbook/takeoff_landing", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataParam<unsigned int>, data_nflights, "flightbook/number flights", "");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataParam<double>, data_flighttime, "flightbook/total flight time", "s");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataParam<double>, data_first_takeoff, "flightbook/first takeoff", "[time epoch]");
+    MAVSYSTEM_DATA_ITEM_OR_RETURN(DataParam<double>, data_last_landing, "flightbook/last landing", "[time epoch]");
     evt_takeofflanding->set_type(Data::DATA_DERIVED);
     data_nflights->set_type(Data::DATA_DERIVED);
     data_flighttime->set_type(Data::DATA_DERIVED);

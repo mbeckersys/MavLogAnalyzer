@@ -261,6 +261,7 @@ public:
     template <typename T1>
     DataTimeseries<T1>* track_generic_timeseries(const std::string & fullname, const T1 & arg_data, const std::string &units = "") {
         MAVSYSTEM_DATA_ITEM(DataTimeseries<T1>, data, fullname, units);
+        if (!data) return NULL;
         data->add_elem(arg_data, _time);
         return data;
     }
@@ -268,6 +269,7 @@ public:
     template <typename T2>
     DataParam<T2>* track_generic_untimed(const std::string & fullname, const T2 & arg_data, const std::string &units = "") {
         MAVSYSTEM_DATA_ITEM(DataParam<T2>, data, fullname, units);
+        if (!data) return NULL;
         data->add_elem(arg_data, _time);
         return data;
     }
@@ -275,6 +277,7 @@ public:
     template <typename T3>
     DataEvent<T3>* track_generic_event(const std::string & fullname, const T3 & arg_data, const std::string &units = "") {
         MAVSYSTEM_DATA_ITEM(DataEvent<T3>, data, fullname, units);
+        if (!data) return NULL;
         data->add_elem(arg_data, _time);
         return data;
     }

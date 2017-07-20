@@ -26,15 +26,21 @@
 
 /**
  * Convenience macro as a shorthand for conditionally creating and remembering data. E.g.:
- *   MAVSYSTEM_DATA_ITEM(DataTimeseries<float>, data_autopilot_load, "general/autopilot_load");
+ *   MAVSYSTEM_DATA_ITEM_OR_RETURN(DataTimeseries<float>, data_autopilot_load, "general/autopilot_load");
  * unrolls to:
  *   DataTimeseries<float> *data_autopilot_load = _get_data<DataTimeseries<float> >(string("general/autopilot_load"));
  */
 #define MAVSYSTEM_DATA_ITEM(DTYPE, VARNAME, STR_FULLPATH, STR_UNITS) \
-    DTYPE *const VARNAME = _get_and_possibly_create_data< DTYPE > (std::string( STR_FULLPATH ), std::string (STR_UNITS)); \
+    DTYPE *const VARNAME = _get_and_possibly_create_data< DTYPE > (std::string( STR_FULLPATH ), std::string (STR_UNITS))
+
+/**
+ * Even more convenient macro to do MAVSYSTEM_DATA_ITEM or bailout with error msg and return
+ */
+#define MAVSYSTEM_DATA_ITEM_OR_RETURN(DTYPE, VARNAME, STR_FULLPATH, STR_UNITS) \
+    MAVSYSTEM_DATA_ITEM(DTYPE, VARNAME, STR_FULLPATH, STR_UNITS); \
     if (!VARNAME) { /* because there could be something with same name but different type */ \
         _log(MSG_ERR, stringbuilder() << "(#" << id << ") writing to data " << STR_FULLPATH << " at " << __FILE__ << ":" << __LINE__  << ". Is there a type mismatch?"); \
-        return NULL; \
+        return; \
     }
 // FIXME: string could be made static...does it help?
 
