@@ -81,6 +81,7 @@ void DialogStats::_defineColumns(void) {
     _columns["max"] = 5;
     _columns["range"] = 6;
     _columns["units"] = 7;
+    _columns["freq"] = 8;
 }
 
 void DialogStats::_showProgressBar() {
@@ -150,10 +151,11 @@ void DialogStats::_updateTable(void) {
             _table->setItem(r, _getColByName("stddev"), new QTableWidgetItem(QString::number(s.stddev)));
             _table->setItem(r, _getColByName("max"), new QTableWidgetItem(QString::number(s.max)));
             _table->setItem(r, _getColByName("range"), new QTableWidgetItem(QString::number(fabs(s.max - s.min))));
+            _table->setItem(r, _getColByName("freq"), new QTableWidgetItem(QString::number(fabs(s.freq))));
         } else {
             _table->setItem(r, _getColByName("min"), new QTableWidgetItem("stats failed"));
         }
-        _table->setItem(r, _getColByName("units"), new QTableWidgetItem((*it)->get_units().c_str()));
+        _table->setItem(r, _getColByName("units"), new QTableWidgetItem((*it)->get_units().c_str()));        
         r++;
         _updateProgressBarValue(r, _data.size());
     }        

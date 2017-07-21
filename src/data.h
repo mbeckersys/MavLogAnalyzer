@@ -65,6 +65,7 @@ public:
         double max;
         double avg;
         double stddev;
+        double freq; ///< samples per second (Hz)
     } data_stats;
 
     /**

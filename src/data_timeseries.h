@@ -381,6 +381,8 @@ public:
         s.stddev = sqrt(sumsq - sum*sum);
         s.t_min = tmin;
         s.t_max = tmax;
+        const double dt = tmax - tmin;
+        s.freq = dt != 0.0 ? n_samples_int / (dt) : 0.0;
         return true;
     }
 
@@ -441,7 +443,7 @@ public:
              "name: " << Data::get_fullname(dynamic_cast<const Data*const>(this)) << std::endl <<
              "units:" << _units << std::endl <<             
              "#data points: " << _n << std::endl <<
-             "data rate: " << get_rate() << "Hz" << std::endl <<
+             "data rate: ~" << get_rate() << "Hz" << std::endl <<
              "time: "<< get_min_time() << " .. " << get_max_time() << std::endl <<
              "min: " << get_min() << " " << _units << std::endl <<
              "max: " << get_max() << " " << _units << std::endl <<
