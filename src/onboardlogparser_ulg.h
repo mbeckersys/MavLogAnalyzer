@@ -104,6 +104,9 @@ private:
     void _register_format(const std::string & name, const std::string & strfields);
     void _register_message_id(const std::string & name, uint8_t, uint16_t msg_id);
     bool _decode_data_msg(uint16_t msg_id, OnboardData & ret);
+    bool _decode_info_msg(uint16_t msglen, OnboardData & ret);
+    bool _decode_str_msg(uint16_t msglen, OnboardData & ret);
+    unsigned int _find_array_spec (std::string & fieldtype);
     Read_Field_Function _get_field_reader (const std::string & fieldtype);
     void _log(logmsgtype_e t, const std::string & str);
 

@@ -374,6 +374,36 @@ bool is_last(Iter iter, const Cont& cont)
     return (iter != cont.end()) && (++iter == cont.end());
 }
 
+/**
+ * @brief see whether given type spec is an array
+ * @param fieldtype
+ * @return number of elements. 1=no array, n=array with n elements. In the
+ * latter case, the fieldtype is changed to element type (chopped []).
+ * If numbner of elements is zero, then the fieldtype is malformed.
+ */
+unsigned int OnboardLogParserULG::_find_array_spec (std::string & fieldtype) {
+    unsigned int elems = 1;
+    {
+        size_t posarr_a = fieldtype.find('[');
+        if (posarr_a != string::npos) {
+            // array
+            size_t posarr_b = fieldtype.find(']');
+            if (posarr_b == string::npos || posarr_a >= posarr_b) {
+                return 0;
+            }
+            const std::string strelems = fieldtype.substr(posarr_a+1, posarr_b - posarr_a - 1);
+            elems = atoi (strelems.c_str());
+            if (elems < 1) {
+                return 0;
+            }
+
+            // chop [] from fieldtype
+            fieldtype = fieldtype.substr(0, posarr_a);
+        }
+    }
+    return elems;
+}
+
 void OnboardLogParserULG::_register_format
 (const std::string & name, const std::string & strfields)
 {
@@ -392,7 +422,7 @@ void OnboardLogParserULG::_register_format
     char        trashbuf [8];
 
     for (vector<string>::const_iterator it = fields.begin(); it != fields.end(); ++it) {
-        const string & fieldspec = *it;
+        const string & fieldspec = *it;        
         /* each <field> is "<fieldtype>(\[array length\])? <fieldname>" */
         {
             size_t pos = fieldspec.find(' ');
@@ -410,31 +440,14 @@ void OnboardLogParserULG::_register_format
             }
 
             /* see if we got an array */
-            unsigned int elems = 1;
-            {
-                size_t posarr_a = fieldtype.find('[');
-                if (posarr_a != string::npos) {
-                    // array
-                    size_t posarr_b = fieldtype.find(']');
-                    if (posarr_b == string::npos || posarr_a >= posarr_b) {
-                        _log (MSG_ERR, stringbuilder() <<
-                              "Malformed array field '" << fieldname << "' in FMT for " << name);
-                        return;
-                    }
-                    const std::string strelems = fieldtype.substr(posarr_a+1, posarr_b - posarr_a - 1);
-                    elems = atoi (strelems.c_str());
-                    if (elems < 1) {
-                        _log (MSG_ERR, stringbuilder() <<
-                              "Negative-length array field '" << fieldname << "' in FMT for " << name);
-                        return;
-                    }
-
-                    // TODO: consolidate char[] to string
-
-                    // chop [] from fieldtype
-                    fieldtype = fieldtype.substr(0, posarr_a);
-                }
+            unsigned int elems = _find_array_spec (fieldtype);
+            if (elems == 0) {
+                _log (MSG_ERR, stringbuilder() <<
+                      "Malformed array field '" << fieldname << "' in FMT for " << name);
+                return;
             }
+
+            /* TODO: consolidate char[] to string */
 
             /* register field while unrolling arrays, if any */
             for (unsigned int e=0; e<elems;++e) {
@@ -470,15 +483,13 @@ void OnboardLogParserULG::_register_format
         }
     }
     _formats [name] = fmt;
-    _log (MSG_DBG, stringbuilder() << "FMT: " << name <<", len=" << fmt.datalen << ", fmt=" << strfields);
-    //std::cout << "FMT of " << name << ": len=" << fmt.datalen << endl;
+    _log (MSG_DBG, stringbuilder() << "FMT: " << name <<", len=" << fmt.datalen << ", fmt=" << strfields);    
 }
 
 void OnboardLogParserULG::_register_message_id
 (const std::string & name, uint8_t /*multi_id*/, uint16_t msg_id)
 {
     _log(MSG_DBG, stringbuilder() << "Msg type: " << name << ", id=" << msg_id);
-    //std::cout << "Registering message " << name << ", id=" << msg_id << endl;
 
     name_map_t::const_iterator it = _message_name.find (msg_id);
     if (it != _message_name.end()) {
@@ -495,8 +506,82 @@ void OnboardLogParserULG::_register_message_id
     }
 }
 
+bool OnboardLogParserULG::_decode_str_msg (uint16_t msglen, OnboardData & ret) {
+    uint8_t lvl = (uint8_t)_buffer[0];
+    int n = read_uint64(_buffer + 1, "timestamp", ret);
+    assert (n==8);
+    const unsigned int STRING_OFF = 9;
+    const unsigned int elems = msglen - STRING_OFF;
+
+    string strlvl = "UNKNOWN";
+    switch (lvl) {
+        case '0': strlvl = "EMERG"; break;
+        case '1': strlvl = "ALERT"; break;
+        case '2': strlvl = "CRIT"; break;
+        case '3': strlvl = "ERR"; break;
+        case '4': strlvl = "WARN"; break;
+        case '5': strlvl = "NOTICE"; break;
+        case '6': strlvl = "INFO"; break;
+        case '7': strlvl = "DEBUG"; break;
+        default: break;
+    }
+
+    ret._msgname_orig = "messages";
+    ret._msgname_readable = _make_readable_name (ret._msgname_orig);
+    ret._string_data [strlvl] = string(_buffer + STRING_OFF, elems);
+    ret._valid = true;
+    return true;
+}
+
 /**
- * @brief read _buffer and decode message as of
+ * @brief UNTESTED
+ * @return true if successfully parsed, else false
+ */
+bool OnboardLogParserULG::_decode_info_msg (uint16_t msglen, OnboardData & ret) {
+    const uint8_t keylen = _buffer[0];
+    string strkey (_buffer+1, keylen);
+
+    size_t pos = strkey.find(' ');
+    if (pos == string::npos) {
+        return false;
+    }
+
+    string typname = strkey.substr(0, pos);
+    const string desc = strkey.substr(pos + 1);
+
+    unsigned int elems = _find_array_spec(typname);
+    if (elems == 0) {
+        _log (MSG_ERR, stringbuilder() <<
+              "Malformed array field in INFO '" << desc << "' message");
+        return false;
+    }
+
+    // good to parse now
+    char*read = _buffer + 1 + keylen;
+    if (typname == "char") {
+        assert (elems == msglen - keylen - 1); // not sure about this one. doc does not say what value elems would be carrying
+        ret._string_data [desc] = string(read, elems);
+    } else if (typname == "uint32_t") {
+        for (unsigned int e=0; e<elems; ++e) {
+            read += read_uint32 (read, desc, ret);
+        }
+    } else if (typname == "int32_t") {
+        for (unsigned int e=0; e<elems; ++e) {
+            read += read_uint32 (read, desc, ret);
+        }
+    } else {
+        _log (MSG_ERR, stringbuilder() <<
+              "Unsupported type of info message '" << desc << "'");
+        return false;
+    }
+    ret._msgname_orig = "info";
+    ret._msgname_readable = _make_readable_name (ret._msgname_orig);
+    ret._valid = true;
+    return true;
+}
+
+/**
+ * @brief read _buffer and decode data message
  * @return true on success, else false
  */
 bool OnboardLogParserULG::_decode_data_msg(uint16_t msg_id, OnboardData & ret) {
@@ -505,7 +590,6 @@ bool OnboardLogParserULG::_decode_data_msg(uint16_t msg_id, OnboardData & ret) {
 
     // find format spec
     const std::string & message_name = it_name->second;
-    //std::cout << "decoding message " << message_name << endl;
     format_map_t::const_iterator it_fmt = _formats.find (message_name);
     if (it_fmt == _formats.end()) return false;
     const format_t & fmt = it_fmt->second;
@@ -523,11 +607,11 @@ bool OnboardLogParserULG::_decode_data_msg(uint16_t msg_id, OnboardData & ret) {
         readptr += f.decode (readptr, f.name, ret);
         assert (readptr <= _buffer + fmt.datalen + DATA_OFF);
     }
-    //assert (readptr == _buffer + fmt.datalen + DATA_OFF);
+    assert (readptr == _buffer + fmt.datalen + DATA_OFF);
 
     // set message name et. al
     ret._msgname_orig = message_name;
-    ret._msgname_readable = _make_readable_name (message_name);
+    ret._msgname_readable = _make_readable_name (ret._msgname_orig);
     ret._valid = true;
 
     return true;
@@ -551,25 +635,43 @@ OnboardData OnboardLogParserULG::get_data(void) {
                 _register_message_id (topic_name, multi_id, msg_id);
             }
             break;
+
         case (int)DATA: // 68
             {
                 uint16_t msg_id = ((uint16_t) _buffer[0]) | (((uint16_t) _buffer[1]) << 8);
                 if (!_decode_data_msg (msg_id, ret)) {
-                    _log (MSG_ERR, stringbuilder() << "Cannot decode message with id " << msg_id);
-                    _filebuf.close(); // because we don't even know the length and lost sync now.
+                    _log (MSG_ERR, stringbuilder() << "Cannot decode message with id " << msg_id);                    
                     return OnboardData();
                 }
             }
             break;
+
+        case (int)INFO:
+            {
+                if (!_decode_info_msg (_buflen, ret)) {
+                    _log (MSG_ERR, stringbuilder() << "Cannot decode info message");
+                    return OnboardData();
+                }
+            }
+            break;
+
+        case (int)LOGGING:
+            {
+                if (!_decode_str_msg (_buflen, ret)) {
+                    _log (MSG_ERR, stringbuilder() << "Cannot decode string (logging) message");
+                    return OnboardData();
+                }
+            }
+            break;
+
         case (int)SYNC://fallthrough
         case (int)REMOVE_LOGGED_MSG://fallthrough
         case (int)PARAMETER://fallthrough
-        case (int)INFO://fallthrough
-        case (int)INFO_MULTIPLE://fallthrough
-        case (int)LOGGING://fallthrough
+        case (int)INFO_MULTIPLE://fallthrough       
         case (int)DROPOUT://fallthrough
             // skip;
             break;
+
         default:
             _log (MSG_ERR, stringbuilder() << "Unknown message type " << typ);
             return OnboardData();
