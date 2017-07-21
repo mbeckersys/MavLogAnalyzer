@@ -106,12 +106,13 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
     // to preserve order when no time is given.
     bool untimed_message = false;
     uint64_t nowtime_us = sys->get_rel_time() + 1;
-    sys->update_rel_time(nowtime_us); // if someone knows better below, it can update just again    
+    //sys->update_rel_time(nowtime_us); // if someone knows better below, it can update just again
 
     /****************************
      *  ABSOLUTE TIMESTAMPS
      ****************************/
-    if (msg.get_message_origname().compare("GPS")==0) {
+    if (msg.get_message_origname().compare("GPS")==0 ||
+        msg.get_message_origname().compare("vehicle_gps_position")==0) {
         const OnboardData::uintdata_t d = msg.get_uintdata();                
         /**
          * Get GPS time and use it as time reference. Unfortunately
@@ -124,7 +125,7 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
         uint16_t gps_week;
         uint32_t gps_week_ms;
 
-        // difference between APM and PX4
+        // difference between APM and PX4log and Ulog
         bool is_apm = false;
         bool is_px4 = false;
         OnboardData::uintdata_t::const_iterator ir = d.find("Status");
@@ -134,6 +135,11 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
             ir = d.find("Fix");
             if (ir != d.end()) {
                 is_px4 = true;
+            } else {
+                ir = d.find("fix_type");
+                if (ir != d.end()) {
+                    is_px4 = true;
+                }
             }
         }
 
@@ -189,6 +195,7 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
                 sys->update_rel_time(_onboard_gps_time.last_nowtime_usec,false);
             }
         }
+        // FIXME: ulog separate
         else if (is_px4) {
             /**************************
              * PX4 time reference
@@ -246,21 +253,25 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
     } else {
         //cout << "generic onboard message: " <<  msg.get_message_origname() << endl;
         const OnboardData::uintdata_t d = msg.get_uintdata();
-        OnboardData::uintdata_t::const_iterator ir = d.find("TimeUS");
-        if (ir == d.end()) ir = d.find("t");
+        OnboardData::uintdata_t::const_iterator ir;
+        ir = d.find("TimeUS"); if (ir != d.end()) goto stopsearch;
+        ir = d.find("t"); if (ir != d.end()) goto stopsearch;
+        ir = d.find("timestamp"); if (ir != d.end()) goto stopsearch;
+
+stopsearch:
         if (ir != d.end()) {
             uint64_t tnow = ir->second;
             if (sys->is_absolute_time(tnow)) {
                 sys->update_time_offset(sys->get_rel_time(), tnow);
             } else {
-                sys->update_rel_time(tnow, false);
+                sys->update_rel_time(tnow, true);
             }
         } else {
             untimed_message = true;
         }
 
         /*
-         * Unlike APM onboard messages, PX4 messages don't carry a timestamp. So we are left guessing here.
+         * Unlike APM onboard messages, PX4log messages don't carry a timestamp. So we are left guessing here.
          */
 
     }

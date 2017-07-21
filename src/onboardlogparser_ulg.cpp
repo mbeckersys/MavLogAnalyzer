@@ -470,7 +470,7 @@ void OnboardLogParserULG::_register_format
         }
     }
     _formats [name] = fmt;
-    _log (MSG_DBG, stringbuilder() << "FMT: " << name <<", len=" << fmt.datalen);
+    _log (MSG_DBG, stringbuilder() << "FMT: " << name <<", len=" << fmt.datalen << ", fmt=" << strfields);
     //std::cout << "FMT of " << name << ": len=" << fmt.datalen << endl;
 }
 
@@ -520,10 +520,10 @@ bool OnboardLogParserULG::_decode_data_msg(uint16_t msg_id, OnboardData & ret) {
     for (std::vector<field_t>::const_iterator it = fmt.fields.begin(); it != fmt.fields.end(); ++it) {
         const field_t & f = *it;
         assert (NULL != f.decode);
-        readptr += f.decode (_buffer, f.name, ret);
+        readptr += f.decode (readptr, f.name, ret);
         assert (readptr <= _buffer + fmt.datalen + DATA_OFF);
     }
-    assert (readptr == _buffer + fmt.datalen + DATA_OFF);
+    //assert (readptr == _buffer + fmt.datalen + DATA_OFF);
 
     // set message name et. al
     ret._msgname_orig = message_name;
