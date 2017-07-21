@@ -108,7 +108,7 @@ SOURCES += main.cpp\
     logtablemodel.cpp \
     onboardlogparser_px4.cpp \
     onboardlogparser.cpp \
-    Onboardlogparser_ulg.cpp \
+    onboardlogparser_ulg.cpp \
     onboardlogparserfactory.cpp
 
 # add CSV parser

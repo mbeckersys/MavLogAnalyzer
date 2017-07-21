@@ -47,6 +47,7 @@ public:
     virtual bool Load (std::string filename, Logger::logchannel * ch = NULL) = 0;
 
     OnboardLogParser() : valid(false) {}
+    virtual ~OnboardLogParser() {}
 
     /**
      * @brief get_data

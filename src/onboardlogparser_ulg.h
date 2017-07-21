@@ -1,6 +1,6 @@
 /**
  * @file onboardlogparserulg.h
- * @brief TODO: describe this file
+ * @brief Parser for ULOG file format
  * @author Martin Becker <becker@rcs.ei.tum.de>
  * @date 7/20/2017
 
@@ -34,14 +34,16 @@
 #define ULOG_BUFLEN 2048
 
 /**
+ * @brief callback function pointer for field/type readers
+ */
+typedef int (*Read_Field_Function)(const char*const buf, const std::string &name, OnboardData & data);
+
+/**
  * @brief implements a Ulog parser. See https://dev.px4.io/en/log/ulog_file_format.html
  * Closefly following PX4 firmware / replay (Apache 2.0 license).
  */
-class OnboardLogParserULG : public OnboardLogParser
-{
-public:
-    OnboardLogParserULG();
-    ~OnboardLogParserULG();
+class OnboardLogParserULG : public OnboardLogParser {
+public:    
 
     // implement OnboardLogParser::get_data
     OnboardData get_data(void);
@@ -62,18 +64,32 @@ private:
      * TYPES
      *******************/
     typedef enum  {
-        FORMAT = 'F',
-        DATA = 'D',
-        INFO = 'I',
-        INFO_MULTIPLE = 'M',
-        PARAMETER = 'P',
-        ADD_LOGGED_MSG = 'A',
-        REMOVE_LOGGED_MSG = 'R',
-        SYNC = 'S',
-        DROPOUT = 'O',
-        LOGGING = 'L',
-        FLAG_BITS = 'B',
+        FLAG_BITS = 'B', ///< Flag bitset message.
+        FORMAT = 'F', ///< format definition for a single (composite) type that can be logged
+        INFO = 'I', ///< information message
+        INFO_MULTIPLE = 'M', ///< information message multi
+        PARAMETER = 'P', ///< parameter message
+        /* the following messages are those of the data section */
+        DATA = 'D', ///< logged data
+        ADD_LOGGED_MSG = 'A', ///< subscribe a message by name and give it an id
+        REMOVE_LOGGED_MSG = 'R', ///< unsubscribe a message (not logged anymore)
+        SYNC = 'S', ///< synchronization message
+        DROPOUT = 'O', ///< mark a dropout (lost logging messages)
+        LOGGING = 'L' ///< Logged string message
     } ULogMessageType;
+
+    typedef struct field_s {
+        std::string          name;
+        Read_Field_Function  decode; ///< callback to decode field
+    } field_t;
+
+    typedef struct format_s {
+        uint16_t             datalen;
+        std::vector<field_t> fields;
+    } format_t;
+
+    typedef std::map<std::string, format_t> format_map_t;
+    typedef std::map<uint8_t, std::string>  name_map_t;
 
     /*******************
      * METHODS
@@ -83,9 +99,12 @@ private:
     bool _get_defs(void);
     bool _get_defs_flagbits(uint16_t siz);
     bool _get_defs_format(uint16_t siz);
-    bool _get_defs_addlog(uint16_t siz);
     bool _get_defs_param(uint16_t siz);
     bool _get_log_message(int&typ);
+    void _register_format(const std::string & name, const std::string & strfields);
+    void _register_message_id(const std::string & name, uint8_t, uint16_t msg_id);
+    bool _decode_data_msg(uint16_t msg_id, OnboardData & ret);
+    Read_Field_Function _get_field_reader (const std::string & fieldtype);
     void _log(logmsgtype_e t, const std::string & str);
 
     /*******************
@@ -102,7 +121,9 @@ private:
     state_e      _state;
 
     uint64_t     _read_until_file_position; ///< read limit if log contains appended data
-    std::map<std::string, std::string> _file_formats; ///< all formats we read from the file
+
+    format_map_t _formats;
+    name_map_t   _message_name;
 };
 
 #endif // ONBOARDLOGPARSERULG_H

@@ -77,8 +77,8 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
 
     // find MAV system ID and cache it
     if (msg.get_message_origname().compare("PARM")==0) {
-        const OnboardData::floatdata d = msg.get_floatdata();
-        OnboardData::floatdata::const_iterator ir = d.find("SYSID_THISMAV");
+        const OnboardData::floatdata_t d = msg.get_floatdata();
+        OnboardData::floatdata_t::const_iterator ir = d.find("SYSID_THISMAV");
         if (ir != d.end()) {
             _onboard_sysid = ((int) ir->second);                        
             log(MSG_INFO, stringbuilder() << "Onboard Log: Sysid=" << _onboard_sysid);
@@ -112,7 +112,7 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
      *  ABSOLUTE TIMESTAMPS
      ****************************/
     if (msg.get_message_origname().compare("GPS")==0) {
-        const OnboardData::uintdata d = msg.get_uintdata();                
+        const OnboardData::uintdata_t d = msg.get_uintdata();                
         /**
          * Get GPS time and use it as time reference. Unfortunately
          * gps_week_ms can have huge jumps. Namely, this happens when the GPS gots from no fix to fix.
@@ -127,7 +127,7 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
         // difference between APM and PX4
         bool is_apm = false;
         bool is_px4 = false;
-        OnboardData::uintdata::const_iterator ir = d.find("Status");
+        OnboardData::uintdata_t::const_iterator ir = d.find("Status");
         if (ir != d.end()) {
             is_apm = true;
         } else {
@@ -223,8 +223,8 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
         }
     } else if (msg.get_message_origname().compare("TIME")==0) {
         // PX4: uint64_t hrt_absolute_time
-        const OnboardData::uintdata d = msg.get_uintdata();
-        OnboardData::uintdata::const_iterator ir = d.find("StartTime");
+        const OnboardData::uintdata_t d = msg.get_uintdata();
+        OnboardData::uintdata_t::const_iterator ir = d.find("StartTime");
         bool valid = ir != d.end();
         if (valid) {
             uint64_t gps_time_usec = ir->second; // microseconds UTC time
@@ -245,8 +245,8 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
         }      
     } else {
         //cout << "generic onboard message: " <<  msg.get_message_origname() << endl;
-        const OnboardData::uintdata d = msg.get_uintdata();
-        OnboardData::uintdata::const_iterator ir = d.find("TimeUS");
+        const OnboardData::uintdata_t d = msg.get_uintdata();
+        OnboardData::uintdata_t::const_iterator ir = d.find("TimeUS");
         if (ir == d.end()) ir = d.find("t");
         if (ir != d.end()) {
             uint64_t tnow = ir->second;
@@ -280,32 +280,32 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
      */
 
     // timeseries
-    for (OnboardData::booldata::const_iterator dit = msg.get_booldata().begin(); dit != msg.get_booldata().end(); ++dit) {
+    for (OnboardData::booldata_t::const_iterator dit = msg.get_booldata().begin(); dit != msg.get_booldata().end(); ++dit) {
         if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
         DataTimed *series = sys->track_generic_timeseries<bool>(fullname, dit->second);
         if (untimed_message) { series->set_has_bad_timestamps(); }
     }
-    for (OnboardData::intdata::const_iterator dit = msg.get_intdata().begin(); dit != msg.get_intdata().end(); ++dit) {
+    for (OnboardData::intdata_t::const_iterator dit = msg.get_intdata().begin(); dit != msg.get_intdata().end(); ++dit) {
         if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
         DataTimed *series = sys->track_generic_timeseries<int>(fullname, dit->second);
         if (untimed_message) { series->set_has_bad_timestamps(); }
     }
-    for (OnboardData::uintdata::const_iterator dit = msg.get_uintdata().begin(); dit != msg.get_uintdata().end(); ++dit) {
+    for (OnboardData::uintdata_t::const_iterator dit = msg.get_uintdata().begin(); dit != msg.get_uintdata().end(); ++dit) {
         if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
         DataTimed *series = sys->track_generic_timeseries<unsigned int>(fullname, dit->second);
         if (untimed_message) { series->set_has_bad_timestamps(); }
     }
-    for (OnboardData::floatdata::const_iterator dit = msg.get_floatdata().begin(); dit != msg.get_floatdata().end(); ++dit) {
+    for (OnboardData::floatdata_t::const_iterator dit = msg.get_floatdata().begin(); dit != msg.get_floatdata().end(); ++dit) {
         if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
         DataTimed *series = sys->track_generic_timeseries<float>(fullname, dit->second);
         if (untimed_message) { series->set_has_bad_timestamps(); }
     }
     // events
-    for (OnboardData::stringdata::const_iterator dit = msg.get_stringdata().begin(); dit != msg.get_stringdata().end(); ++dit) {
+    for (OnboardData::stringdata_t::const_iterator dit = msg.get_stringdata().begin(); dit != msg.get_stringdata().end(); ++dit) {
         if (dit->first == "t") continue;
         string fullname = "onboard log/" + msg.get_message_name() + "/" + dit->first;
         sys->track_generic_event<std::string>(fullname, dit->second);        
