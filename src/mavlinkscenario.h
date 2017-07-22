@@ -178,6 +178,7 @@ private:
     Logger::logchannel _logchannel;
     std::string _name; ///< descriptive name of the scenario
     std::string _desc; ///< comments on the scenario
+    std::string _last_onboard_parser;
 
     // database
     bool _havedb;

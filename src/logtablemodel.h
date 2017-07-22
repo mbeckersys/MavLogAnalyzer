@@ -67,7 +67,7 @@ public:
      * @brief remove all messages from one emitter (convenience)
      * @param e
      */
-    void remove_emitter(const std::string & emitter);
+    void remove_emitter(const std::string &);
 
     static QString type2str(logmsgtype_e t);
 signals:

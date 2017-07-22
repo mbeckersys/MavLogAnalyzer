@@ -57,6 +57,11 @@ public:
     virtual OnboardData get_data(void) = 0;
 
     /**
+     * @return  name of the underlying parser
+     */
+    virtual std::string get_parser_name(void) const = 0;
+
+    /**
      * @brief user can query whether there is more data to fetch
      * @return true if so
      */

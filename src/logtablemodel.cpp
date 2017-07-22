@@ -80,7 +80,7 @@ void LogTableModel::add_message(const std::string & emitter, logmsgtype_e typ, c
  * @brief remove all messages from one emitter
  * @param e
  */
-void LogTableModel::remove_emitter(const std::string &emitter) {
+void LogTableModel::remove_emitter(const std::string &/*emitter*/) {
     // TODO: implement removal of emitter
 }
 

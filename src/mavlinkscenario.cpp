@@ -73,6 +73,15 @@ void MavlinkScenario::log(logmsgtype_e t, const std::string & str) {
 
 // FIXME: refactor similar to add_mavlink_message (int return) and make polymorphic
 bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
+
+    // check for parser id
+    if (msg._msgname_orig == "_parser_name") {
+        const OnboardData::stringdata_t::const_iterator it = msg.get_stringdata().find("_parser_name");
+        if (it == msg.get_stringdata().end()) return true;
+        _last_onboard_parser = it->second;
+        return true;
+    }
+
     if (!msg.is_valid()) return true;
 
     // find MAV system ID and cache it
@@ -124,110 +133,105 @@ bool MavlinkScenario::add_onboard_message(const OnboardData &msg) {
         bool valid = true;
         uint16_t gps_week;
         uint32_t gps_week_ms;
+        OnboardData::uintdata_t::const_iterator ir;
 
-        // difference between APM and PX4log and Ulog
-        bool is_apm = false;
-        bool is_px4 = false;
-        OnboardData::uintdata_t::const_iterator ir = d.find("Status");
-        if (ir != d.end()) {
-            is_apm = true;
-        } else {
-            ir = d.find("Fix");
-            if (ir != d.end()) {
-                is_px4 = true;
+        // check if we have a fix
+        bool has_gps_fix = false;
+        {
+            std::string field_fix;
+            if (_last_onboard_parser == "apm") {
+                field_fix = "Status";
+            } else if (_last_onboard_parser == "px4") {
+                field_fix = "Fix";
+            } else if (_last_onboard_parser == "ulg") {
+                field_fix = "fix_type";
+            }
+            ir = d.find(field_fix);
+            if (ir == d.end()) {
+                valid = false;
             } else {
-                ir = d.find("fix_type");
-                if (ir != d.end()) {
-                    is_px4 = true;
-                }
-            }
-        }
-
-        valid = valid && (is_px4 || is_apm);
-        if (valid) {
-            bool has_gps_fix;
-            if (is_apm) {
                 unsigned int gpsfix = ir->second;
-                const unsigned int GPS_HAS_FIX_CONSTANT = 2; // see APM:Copter GPS status codes
-                has_gps_fix = (gpsfix >= GPS_HAS_FIX_CONSTANT);
-            }
-            if (is_px4) {
-                unsigned int gpsfix = ir->second;
-                const unsigned int GPS_HAS_FIX_CONSTANT = 2;
+                const unsigned int GPS_HAS_FIX_CONSTANT = 2; // true for all known parsers so far
                 has_gps_fix = (gpsfix >= GPS_HAS_FIX_CONSTANT);
             }
             valid = valid && has_gps_fix;
         }
 
-        if (is_apm) {
-            /**************************
-             * APM time reference
-             **************************/
-            ir = d.find("TimeMS");
-            valid = valid && (ir != d.end());
-            if (valid) {
-                gps_week_ms = ir->second;
-            }
-            ir = d.find("Week");
-            valid = valid && (ir != d.end());
-            if (valid) {
-                gps_week = ir->second;
-            }
-            if (valid) {
-                if (_onboard_gps_time.have_last) {
-                    // update rel. time based on the time lapsed since last GPS message
-                    // assumption: GPS week does not wrap during flight
-                    uint64_t timepassed_usec = (gps_week_ms - _onboard_gps_time.last_gps_week_ms)*1000UL;
-                    uint64_t cand_nowtime_us = _onboard_gps_time.last_nowtime_usec + timepassed_usec;// - _onboard_gps_time.initial_gps_week_us;
-                    nowtime_us = cand_nowtime_us;
-                    uint64_t time_unix_usec = gpsepoch2unixepoch_usec(gps_week, gps_week_ms);
-                    sys->update_time_offset(nowtime_us, time_unix_usec, /*allowjumps=*/true); // OK -- the only place where we accept epoch/absolute time
-                    //cout << "onboardparser: rel.time=" << nowtime_us << "us, unix=" << time_unix_usec/1E6 << "s, passed = " << timepassed_usec/1000 << "ms" << endl;
-
+        // extract absolute time
+        if (valid) {
+            if (_last_onboard_parser == "apm") {
+                /**************************
+                 * APM time reference
+                 **************************/
+                ir = d.find("TimeMS");
+                valid = valid && (ir != d.end());
+                if (valid) {
+                    gps_week_ms = ir->second;
                 }
-                _onboard_gps_time.last_nowtime_usec = nowtime_us;
-                _onboard_gps_time.last_gps_week_ms = gps_week_ms;
-                _onboard_gps_time.have_last = true;
-            } else {
-                // FIXME: no guess what the time is...increment by one to keep ordering of messages
-                log(MSG_WARN, stringbuilder() << "heavy guess mode at t_rel=" << nowtime_us/1000 << " ... no time because no GPS fix");
-                _onboard_gps_time.last_nowtime_usec += 100E3; // 100 msec between two positions?
-                sys->update_rel_time(_onboard_gps_time.last_nowtime_usec,false);
-            }
-        }
-        // FIXME: ulog separate
-        else if (is_px4) {
-            /**************************
-             * PX4 time reference
-             **************************/
-            ir = d.find("GPSTime");
-            valid = valid && (ir != d.end());
+                ir = d.find("Week");
+                valid = valid && (ir != d.end());
+                if (valid) {
+                    gps_week = ir->second;
+                }
+                if (valid) {
+                    if (_onboard_gps_time.have_last) {
+                        // update rel. time based on the time lapsed since last GPS message
+                        // assumption: GPS week does not wrap during flight
+                        uint64_t timepassed_usec = (gps_week_ms - _onboard_gps_time.last_gps_week_ms)*1000UL;
+                        uint64_t cand_nowtime_us = _onboard_gps_time.last_nowtime_usec + timepassed_usec;// - _onboard_gps_time.initial_gps_week_us;
+                        nowtime_us = cand_nowtime_us;
+                        uint64_t time_unix_usec = gpsepoch2unixepoch_usec(gps_week, gps_week_ms);
+                        sys->update_time_offset(nowtime_us, time_unix_usec, /*allowjumps=*/true); // OK -- the only place where we accept epoch/absolute time
+                        //cout << "onboardparser: rel.time=" << nowtime_us << "us, unix=" << time_unix_usec/1E6 << "s, passed = " << timepassed_usec/1000 << "ms" << endl;
 
-            if (valid) {
-                uint64_t gps_time_usec = ir->second; // microseconds UTC time
-                uint64_t reltime_us = 0;
-                if (_onboard_gps_time.have_last) {                    
-                    // update rel. time based on the time lapsed since last GPS message                    
-                    uint64_t timepassed_usec = (gps_time_usec - _onboard_gps_time.last_gps_time);
-                    reltime_us = _onboard_gps_time.last_nowtime_usec + timepassed_usec;// - _onboard_gps_time.initial_gps_week_us;
-
-                    // inx PX4 absolute time and offset are the same, because this message has UTC
-                    uint64_t time_unix_usec = gps_time_usec;
-
-                    sys->update_time_offset(reltime_us, time_unix_usec, /*allowjumps=*/true); // OK -- the only place where we accept epoch/absolute time
+                    }
+                    _onboard_gps_time.last_nowtime_usec = nowtime_us;
+                    _onboard_gps_time.last_gps_week_ms = gps_week_ms;
+                    _onboard_gps_time.have_last = true;
                 } else {
-                    log(MSG_INFO, stringbuilder() << "Initial time from GPS: " << gps_time_usec/1E6  << " s");
+                    // no hint what the time is...increment by one to keep ordering of messages
+                    log(MSG_WARN, stringbuilder() << "heavy guess mode at t_rel=" << nowtime_us/1000 << " ... no time because no GPS fix");
+                    _onboard_gps_time.last_nowtime_usec += 100E3; // 100 msec between two positions?
+                    sys->update_rel_time(_onboard_gps_time.last_nowtime_usec,false);
                 }
-                _onboard_gps_time.last_nowtime_usec = reltime_us;
-                _onboard_gps_time.last_gps_time = gps_time_usec;
-                _onboard_gps_time.have_last = true;
-            } else {
-                // FIXME: GPS message w/o timestamp. increment a bit to keep ordering of messages
-                uint64_t tnow = sys->get_rel_time();
-                tnow +=50; // 50usec
-                sys->update_rel_time(tnow,false);
+            } else if (_last_onboard_parser == "px4" || _last_onboard_parser == "ulg") {
+                /******************************
+                 * PX4 and ULOG time reference
+                 ******************************/
+                if (_last_onboard_parser == "px4") {
+                    ir = d.find("GPSTime");
+                } else {
+                    ir = d.find("time_utc_usec");
+                }
+                valid = valid && (ir != d.end());
+
+                if (valid) {
+                    uint64_t gps_time_usec = ir->second; // microseconds UTC time
+                    uint64_t reltime_us = 0;
+                    if (_onboard_gps_time.have_last) {
+                        // update rel. time based on the time lapsed since last GPS message
+                        uint64_t timepassed_usec = (gps_time_usec - _onboard_gps_time.last_gps_time);
+                        reltime_us = _onboard_gps_time.last_nowtime_usec + timepassed_usec;// - _onboard_gps_time.initial_gps_week_us;
+
+                        // inx PX4 absolute time and offset are the same, because this message has UTC
+                        uint64_t time_unix_usec = gps_time_usec;
+
+                        sys->update_time_offset(reltime_us, time_unix_usec, /*allowjumps=*/true); // OK -- the only place where we accept epoch/absolute time
+                    } else {
+                        log(MSG_INFO, stringbuilder() << "Initial time from GPS: " << gps_time_usec/1E6  << " s");
+                    }
+                    _onboard_gps_time.last_nowtime_usec = reltime_us;
+                    _onboard_gps_time.last_gps_time = gps_time_usec;
+                    _onboard_gps_time.have_last = true;
+                } else {
+                    // GPS message w/o timestamp. increment a bit to keep ordering of messages
+                    uint64_t tnow = sys->get_rel_time();
+                    tnow +=50; // 50usec
+                    sys->update_rel_time(tnow,false);
+                }
             }
         }
+
     } else if (msg.get_message_origname().compare("TIME")==0) {
         // PX4: uint64_t hrt_absolute_time
         const OnboardData::uintdata_t d = msg.get_uintdata();
@@ -278,17 +282,7 @@ stopsearch:
 
     /****************************
      *  RELATIVE TIMESTAMPS
-     ****************************/
-    /* TODO: be clever about missing timestamps, use message rates
-     * We could probably interpolate some relative times based on the periods of the following periodic messages:
-     *  (careful, periods are user-defined!)
-     *  - ATT: can be 10Hz or 50Hz
-     *  - CTUN: 10Hz
-     *  - CURRENT: 10Hz
-     *  - PM: 0.1Hz (every 10 sec)
-     *
-     * The rest seems aperiodic.
-     */
+     ****************************/    
 
     // timeseries
     for (OnboardData::booldata_t::const_iterator dit = msg.get_booldata().begin(); dit != msg.get_booldata().end(); ++dit) {
@@ -1100,7 +1094,7 @@ void MavlinkScenario::process(bool calculate_time_offset) {
 }
 
 void MavlinkScenario::dump_overview(void) {
-    dump_overview(std::cout); // FIXME
+    dump_overview(std::cout);
 }
 
 void MavlinkScenario::dump_overview(ostream& ofs) const {

@@ -559,7 +559,7 @@ bool OnboardLogParserULG::_decode_info_msg (uint16_t msglen, OnboardData & ret) 
     // good to parse now
     char*read = _buffer + 1 + keylen;
     if (typname == "char") {
-        assert (elems == msglen - keylen - 1); // not sure about this one. doc does not say what value elems would be carrying
+        assert ((int)elems == msglen - keylen - 1); // not sure about this one. doc does not say what value elems would be carrying
         ret._string_data [desc] = string(read, elems);
     } else if (typname == "uint32_t") {
         for (unsigned int e=0; e<elems; ++e) {

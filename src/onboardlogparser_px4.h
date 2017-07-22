@@ -44,6 +44,10 @@ public:
 
     static std::string get_extension(void) { return "px4log"; }
 
+
+    // implement super
+    std::string get_parser_name(void) const { return "px4"; }
+
     // implement super
     bool Load (std::string filename, Logger::logchannel * ch = NULL);
 

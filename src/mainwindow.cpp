@@ -973,7 +973,15 @@ void MainWindow::_addFile(double delay) {
                     qDebug() << "Could not find/allocate parser for extension " << QString::fromStdString(ext);
                     continue; // skip file
                 }
+                // send parser info to scene
+                const std::string parsername = olp->get_parser_name();
+                OnboardData parser_id;
+                parser_id._string_data["_parser_name"] = parsername;
+                parser_id._msgname_orig = "_parser_name";
+                parser_id._valid = false;
+                tmp_scene->add_onboard_message (parser_id);
 
+                // now go ahead with actual data
                 olp->Load (f_fullpath.toStdString(), tmp_scene->getLogChannel());
                 if (!olp->valid) {continue;}
 
