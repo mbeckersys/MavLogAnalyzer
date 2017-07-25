@@ -114,7 +114,7 @@ void DialogDataTable::_buildTable(void) {
         TRY_BUILDTABLE_DATATIMESERIES(_data, double);
         TRY_BUILDTABLE_DATATIMESERIES(_data, unsigned int);
         TRY_BUILDTABLE_DATATIMESERIES(_data, unsigned long);
-        TRY_BUILDTABLE_DATATIMESERIES(_data, std::string);
+        // TRY_BUILDTABLE_DATATIMESERIES(_data, std::string); ///< string should not be a timeseries, but an event
     } else {
         TRY_BUILDTABLE_DATAEVENT(_data, bool);
         TRY_BUILDTABLE_DATAEVENT(_data, std::string);
