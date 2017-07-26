@@ -24,7 +24,10 @@
 #define CONFIG_H
 
 // to suppres warnings for purposely not used parameters (e.g., for polymorphism)
-#define ATTR_UNUSED __attribute__((unused))
+// #define ATTR_UNUSED __attribute__((unused))
+// Prefer: Just don't give those parameters a name (or comment the name) in the implementation
+// => will work for all compilers and doesn't require macro
+
 
 // for math: INFINITY and NAN macros
 #ifndef _GNU_SOURCE
