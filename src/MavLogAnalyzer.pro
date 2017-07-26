@@ -63,14 +63,20 @@ TEMPLATE = app
 ###########################
 # this points to generated MavLink headers
 INCLUDEPATH += $$MAVLINK_COMMON $$QWT_INCPATH
-LIBS+= -L $$QWT_LIBPATH
+LIBS+= -L$$QWT_LIBPATH
 
 ###########################
 #    CPPFLAGS/LFLAGS
 ###########################
-QMAKE_CXXFLAGS += -Wall -fpermissive -DWITH_DATAREGEX
-QMAKE_CXXFLAGS_RELEASE += -O3
-QMAKE_CXXFLAGS_DEBUG += -O0
+gcc {
+    QMAKE_CXXFLAGS += -Wall -std=c++11 -DWITH_DATAREGEX
+    QMAKE_CXXFLAGS_RELEASE += -O3
+    QMAKE_CXXFLAGS_DEBUG += -O0
+}
+win32-msvc {
+    QMAKE_CXXFLAGS += -DQWT_DLL -DWITH_DATAREGEX
+}
+
 #QMAKE_CXXFLAGS_DEBUG += -pg -p
 #QMAKE_LFLAGS_DEBUG += -pg
 #QMAKE_CXXFLAGS += -Werror
