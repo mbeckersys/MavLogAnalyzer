@@ -285,42 +285,50 @@ stopsearch:
      ****************************/    
 
     // timeseries
-    const std::string msg_name = "onboard log/" + msg.get_message_name() + "/";
-    const std::size_t stem_len = msg_name.size();
-    std::string fullname = msg_name;
+    const std::string stem = "onboard log/" + msg.get_message_name() + "/";
+    const std::size_t stem_len = stem.size();
+
+    /*
+     * Full name will consist of two parts:
+     * - The stem as created above - which is the same through the rest of the function
+     * - The data name that will be appended and which might be differen for each data sample
+     *
+     * => For performance reasons the same string variable will be reused to avoid repeated memeory allocations
+     */
+    std::string fullname = stem;
     for (OnboardData::booldata_t::const_iterator dit = msg.get_booldata().begin(); dit != msg.get_booldata().end(); ++dit) {
         if (dit->first == "t") continue;
-        fullname.resize(stem_len);
-        fullname.append(dit->first);
+        fullname.erase(stem_len); //trim down to stem
+        fullname.append(dit->first); //append name of data sample
         DataTimed *series = sys->track_generic_timeseries<bool>(fullname, dit->second);
         if (untimed_message) { series->set_has_bad_timestamps(); }
     }
     for (OnboardData::intdata_t::const_iterator dit = msg.get_intdata().begin(); dit != msg.get_intdata().end(); ++dit) {
         if (dit->first == "t") continue;
-        fullname.resize(stem_len);
-        fullname.append(dit->first);
+        fullname.erase(stem_len); //trim down to stem
+        fullname.append(dit->first); //append name of data sample
         DataTimed *series = sys->track_generic_timeseries<int>(fullname, dit->second);
         if (untimed_message) { series->set_has_bad_timestamps(); }
     }
     for (OnboardData::uintdata_t::const_iterator dit = msg.get_uintdata().begin(); dit != msg.get_uintdata().end(); ++dit) {
         if (dit->first == "t") continue;
-        fullname.resize(stem_len);
-        fullname.append(dit->first);
+        fullname.erase(stem_len); //trim down to stem
+        fullname.append(dit->first); //append name of data sample
         DataTimed *series = sys->track_generic_timeseries<unsigned int>(fullname, dit->second);
         if (untimed_message) { series->set_has_bad_timestamps(); }
     }
     for (OnboardData::floatdata_t::const_iterator dit = msg.get_floatdata().begin(); dit != msg.get_floatdata().end(); ++dit) {
         if (dit->first == "t") continue;
-        fullname.resize(stem_len);
-        fullname.append(dit->first);
+        fullname.erase(stem_len); //trim down to stem
+        fullname.append(dit->first); //append name of data sample
         DataTimed *series = sys->track_generic_timeseries<float>(fullname, dit->second);
         if (untimed_message) { series->set_has_bad_timestamps(); }
     }
     // events
     for (OnboardData::stringdata_t::const_iterator dit = msg.get_stringdata().begin(); dit != msg.get_stringdata().end(); ++dit) {
         if (dit->first == "t") continue;
-        fullname.resize(stem_len);
-        fullname.append(dit->first);
+        fullname.erase(stem_len); //trim down to stem
+        fullname.append(dit->first); //append name of data sample
         sys->track_generic_event<std::string>(fullname, dit->second);        
     }
 
