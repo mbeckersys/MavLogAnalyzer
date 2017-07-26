@@ -86,7 +86,7 @@ public:
      * @brief get_num_data
      * @return number of data rows/series in the plot
      */
-    unsigned int get_num_data() const {
+    std::size_t get_num_data() const {
         return _series.size();
     }
 

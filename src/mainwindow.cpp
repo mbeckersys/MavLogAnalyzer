@@ -706,22 +706,22 @@ MainWindow::~MainWindow() {
 /**
  * @brief adds data or datagroup (recursively) to plot
  */
-void MainWindow::_addDataToPlot(TreeItem * const item) {
+void MainWindow::_addDataToPlot(TreeItem * const item) { // FIXME: this should ideally work with const TreeItem
     if (!item) return;
 
 
     // figure out whether it is a group or data
-    const DataGroup * const g = dynamic_cast<const DataGroup * const>(item);
+    DataGroup * const g = dynamic_cast<DataGroup *>(item);
     if (g) {
         // try to add all data and all groups in here
-        for (DataGroup::groupmap::const_iterator itg = g->groups.begin(); itg != g->groups.end(); ++itg) {
-            _addDataToPlot(dynamic_cast<const TreeItem*const>(itg->second)); // FIXME: conversion from const TreeItem* to TreeItem* (fpermissive)
+        for (DataGroup::groupmap::iterator itg = g->groups.begin(); itg != g->groups.end(); ++itg) {
+            _addDataToPlot(dynamic_cast<TreeItem*>(itg->second));
         }
-        for (DataGroup::datamap::const_iterator itd = g->data.begin(); itd != g->data.end(); ++itd) {
-            _addDataToPlot(dynamic_cast<const TreeItem*const>(itd->second)); // FIXME: conversion from const TreeItem* to TreeItem* (fpermissive)
+        for (DataGroup::datamap::iterator itd = g->data.begin(); itd != g->data.end(); ++itd) {
+            _addDataToPlot(dynamic_cast<TreeItem*>(itd->second));
         }
     }
-    Data * const d = dynamic_cast<Data * const>(item);
+    Data * const d = dynamic_cast<Data *>(item);
     if (d) {
         // no group -> single item. just add it.
 
@@ -736,7 +736,7 @@ void MainWindow::_addDataToPlot(TreeItem * const item) {
             //d->unset_deferred(); // cuz now its loaded // TODO
         }
 
-        const Data * const d = dynamic_cast<const Data * const>(item);
+        const Data * const d = dynamic_cast<const Data *>(item);
         if (!d_plot->addData(d)) {
             QMessageBox msgbox(QMessageBox::Warning, QString("Error"), QString("Sorry, but data type of data %1 is not recognized.\nExtend mavplot.cpp to handle this type.").arg(d->get_name().c_str()));
             msgbox.exec();
@@ -756,7 +756,7 @@ void MainWindow::on_buttonAddData_clicked() {
     if (_dataSelected) {
         _addDataToPlot(_dataSelected);
     } else if (_datagroupSelected) {
-        _addDataToPlot(dynamic_cast<TreeItem*const>(_datagroupSelected));
+        _addDataToPlot(dynamic_cast<TreeItem*>(_datagroupSelected));
     } else {
         return; // nothing selected
     }

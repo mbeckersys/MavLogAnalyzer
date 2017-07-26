@@ -23,6 +23,7 @@
 
 #include <sstream>
 #include <algorithm>
+#include <functional>
 #include "stringfun.h"
 
 using namespace std;
