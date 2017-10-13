@@ -966,6 +966,14 @@ void MainWindow::_addFile(double delay) {
                     }
 
                 }
+                const mavlink_status_t*stats = mlp->get_linkstats();
+                qDebug() << "Mavlink parser stats: "
+                            "#rx=" << stats->msg_received <<
+                            ", #rx ok=" << stats->packet_rx_success_count <<
+                            ", #rx drop" << stats->packet_rx_drop_count <<
+                            ", #buffer ovf=" << stats->buffer_overrun <<
+                            ", #parser err=" << stats->parse_error;
+
                 parsed = true;
             } else {
                 OnboardLogParser*olp = OnboardLogParserFactory::Instance().Create(ext);

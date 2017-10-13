@@ -924,6 +924,31 @@ int MavlinkScenario::add_mavlink_message(const mavlink_message_t &msg, bool allo
         }
     }
 
+    case MAVLINK_MSG_ID_OPTICAL_FLOW: // #100
+    {
+        const string fullname = "optical flow/";
+        const uint64_t time_usec = mavlink_msg_optical_flow_get_time_usec(&msg);
+        int upd = sys->update_rel_time(time_usec, allow_time_jumps); // treat as relative time
+        if (0 == upd) {
+            const float dist = mavlink_msg_optical_flow_get_ground_distance(&msg);
+            const int16_t fx = mavlink_msg_optical_flow_get_flow_x(&msg);
+            const int16_t fy = mavlink_msg_optical_flow_get_flow_y(&msg);
+            const float flow_comp_m_x = mavlink_msg_optical_flow_get_flow_comp_m_x(&msg);
+            const float flow_comp_m_y = mavlink_msg_optical_flow_get_flow_comp_m_y(&msg);
+            uint8_t quality = mavlink_msg_optical_flow_get_quality(&msg);
+
+            sys->track_generic_timeseries<int>(fullname + "quality", quality, "0:bad, 255:best");
+            sys->track_generic_timeseries<float>(fullname + "distance", dist, "m");
+            sys->track_generic_timeseries<int>(fullname + "flow_x", fx, "px*10");
+            sys->track_generic_timeseries<int>(fullname + "flow_y", fy, "px*10");
+            sys->track_generic_timeseries<float>(fullname + "flow_comp_m_x", flow_comp_m_x, "m/s");
+            sys->track_generic_timeseries<float>(fullname + "flow_comp_m_y", flow_comp_m_y, "m/s");
+        } else {
+            ret = upd;
+        }
+    }
+        break;
+
     case MAVLINK_MSG_ID_RADIO_STATUS: // #109
     {
         // local

@@ -80,10 +80,13 @@ int main(int argc, char *argv[]) {
 		    // start GUI
 		    QApplication a(argc, argv);
 		    QFile stylesheet(":/darkorange.stylesheet");
-		    stylesheet.open(QIODevice::ReadOnly | QIODevice::Text);
-		    QTextStream ts(&stylesheet);
-		    a.setStyleSheet(ts.readAll());
-		    stylesheet.close();
+            if (!stylesheet.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                qDebug() << "Error opening stylesheet from resources";
+            } else {
+                QTextStream ts(&stylesheet);
+                a.setStyleSheet(ts.readAll());
+                stylesheet.close();
+            }
 		    MainWindow w(parsers, &args);
 		    w.show();
 		    return a.exec();
