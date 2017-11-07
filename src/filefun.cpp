@@ -24,14 +24,22 @@
 #include <algorithm>
 #include <limits.h>
 #include <stdlib.h>
-#include <libgen.h>
+#ifdef _MSC_VER
+    #include <io.h> // _access
+    #define F_OK 0
+    #ifndef access
+        #define access _access
+    #endif // !access
+#else
+    #include <unistd.h> // access, F_OK
+#endif // !_MSC_VER
+
 #include "filefun.h"
-#include <unistd.h>
 
 using namespace std;
 
-#if defined(WIN32) || defined(__WIN32) || defined(__WIN32__)
-	#define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
+#if defined(WIN32) || defined(__WIN32) || defined(__WIN32__) || _MSC_VER
+    #define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
 #endif
 
 string getFullPath(const string & filename) {

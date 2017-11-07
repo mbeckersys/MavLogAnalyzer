@@ -23,7 +23,9 @@
 
 #include <stdio.h> // FIXME: rem
 #include <cstdlib> // atof
+#ifndef _MSC_VER
 #include <getopt.h>
+#endif
 #include "cmdlineargs.h"
 #include "filefun.h"
 
@@ -53,6 +55,7 @@ bool CmdlineArgs::_file_exists(std::string filename) {
 }
 
 int CmdlineArgs::_parse(int argc, char**argv) {
+#ifndef _MSC_VER
     const char *const short_options = "hnj:i"; /* A string listing valid short options letters.  */
     /* An array describing valid long options.  */
     const struct option long_options[] = {
@@ -112,6 +115,7 @@ int CmdlineArgs::_parse(int argc, char**argv) {
             }            
         }
     }
+#endif
     return 0;
 }
 

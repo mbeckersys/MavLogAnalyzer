@@ -21,11 +21,11 @@
     
  */
 
-#include <sys/time.h>
+#include <chrono>
+#include <thread>
 #include <sstream>
 //#include <stdlib.h>
 #include <iostream>
-#include <unistd.h>
 #include "logger.h"
 #include "filefun.h"
 
@@ -135,11 +135,10 @@ ofstream* Logger:: _createLogfile(std::string filename) {
     // gamble filename
     _fname << filename << "_";
 
-    struct timeval now;
-    long millitime;
-    gettimeofday(&now, NULL);
-    millitime = (now.tv_sec * 1000 + now.tv_usec/1000.0);
-    _fname << millitime << ".txt";
+    using namespace std::chrono;
+    auto now_milli = time_point_cast<milliseconds>(system_clock::now());
+
+    _fname << now_milli.time_since_epoch().count() << ".txt";
     fullname = _fname.str();
 
     ofstream*log = new ofstream;
@@ -151,7 +150,7 @@ ofstream* Logger:: _createLogfile(std::string filename) {
         log->open(fullname.c_str());
         cout << "Log file created: " << fullname << endl;        
     }
-    usleep(5E-3);// FIXME: because of time resolution, we have to wait here for a while. otherwise we could be asked to create a log of logfiles, and it would oftentimes fail
+    this_thread::sleep_for(milliseconds{ 5 });// FIXME: because of time resolution, we have to wait here for a while. otherwise we could be asked to create a log of logfiles, and it would oftentimes fail
     return log;
 }
 

@@ -99,7 +99,7 @@ public:
     }
 
     // implements Data::export_csv()
-    bool export_csv(const std::string & filename, const std::string & sep ATTR_UNUSED = std::string(",")) const {
+    bool export_csv(const std::string & filename, const std::string & /*sep*/ = std::string(",")) const {
         std::ofstream fout(filename.c_str());
 
         if (!fout.is_open()) return false;
